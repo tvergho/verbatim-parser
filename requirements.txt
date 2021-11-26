@@ -1,10 +1,19 @@
 algoliasearch==2.6.0
 beautifulsoup4==4.10.0
+bs4==0.0.1
 certifi==2021.10.8
 charset-normalizer==2.0.8
+cssselect==1.1.0
+fire==0.4.0
 idna==3.3
 lxml==4.6.4
+parse==1.19.0
+pyquery==1.4.3
 python-docx==0.8.11
+-e git+https://github.com/davidwgrossman/pywebcopy.git@33f8e808bfb3e4816314357db2f5f0e9d384f2fe#egg=pywebcopy
 requests==2.26.0
+six==1.16.0
 soupsieve==2.3.1
+termcolor==1.1.0
 urllib3==1.26.7
+w3lib==1.22.0
