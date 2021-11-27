@@ -37,7 +37,7 @@ if __name__ == "__main__":
     print("File not found")
     sys.exit(1)
   
-  parser = Parser(docx_name)
+  parser = Parser(docx_name, {"filename": docx_name})
   cards = parser.parse()
 
   search = Search()

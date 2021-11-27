@@ -53,7 +53,7 @@ class Card():
       "tag": self.tag,
       "cite": self.cite,
       "body": self.body,
-      "objectID": object_id,
+      "id": object_id,
       **self.additional_info
     }
 
