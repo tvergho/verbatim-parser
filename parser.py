@@ -5,10 +5,11 @@ from card import TAG_NAME, Card
 from search import Search
 
 class Parser():
-  def __init__(self, filename):
+  def __init__(self, filename, additional_info={}):
     self.filename = filename
     self.document = Document(self.filename)
     self.cards = []
+    self.additional_info = additional_info
 
   def parse(self):
     current_card = []
@@ -16,7 +17,7 @@ class Parser():
     for paragraph in self.document.paragraphs:
       if paragraph.style.name == TAG_NAME:
         try:
-          self.cards.append(Card(current_card))
+          self.cards.append(Card(current_card, self.additional_info))
         except:
           continue
         finally:

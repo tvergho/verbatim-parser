@@ -6,7 +6,7 @@ EMPHASIS_NAME = "Emphasis"
 UNDERLINE_NAME = "Underline"
 
 class Card():
-  def __init__(self, paragraphs):
+  def __init__(self, paragraphs, additional_info):
     if paragraphs[0].style.name != TAG_NAME or len(paragraphs) < 2:
       raise Exception("Invalid paragraph structure")
 
@@ -22,6 +22,8 @@ class Card():
     self.emphasis = []
     self.underlines = []
     self.parse_paragraphs()
+
+    self.additional_info = additional_info
   
   def parse_paragraphs(self):
     for i in range(2, len(self.paragraphs)):
@@ -51,7 +53,8 @@ class Card():
       "tag": self.tag,
       "cite": self.cite,
       "body": self.body,
-      "objectID": object_id
+      "objectID": object_id,
+      **self.additional_info
     }
 
   def __str__(self):

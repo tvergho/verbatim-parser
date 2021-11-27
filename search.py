@@ -8,6 +8,10 @@ class Search():
   def __init__(self):
     self.client = SearchClient.create(app_id, api_key)
     self.index = self.client.init_index(index_name)
+    self.index.set_settings({
+      "attributeForDistinct": "tag",
+      "distinct": True
+    })
 
   def upload_cards(self, cards):
     card_objects = map(lambda card: card.get_index(), cards)
