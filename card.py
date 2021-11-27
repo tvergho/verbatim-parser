@@ -24,7 +24,8 @@ class Card():
     self.parse_paragraphs()
 
     self.additional_info = additional_info
-  
+    self.object_id = hashlib.sha256(str(self).encode()).hexdigest()
+
   def parse_paragraphs(self):
     for i in range(2, len(self.paragraphs)):
       p = self.paragraphs[i]
@@ -47,15 +48,31 @@ class Card():
         j = run_index + len(run_text)
   
   def get_index(self):
-    object_id = hashlib.sha256(str(self).encode()).hexdigest()
-
     return {
       "tag": self.tag,
       "cite": self.cite,
       "body": self.body,
-      "id": object_id,
+      "id": self.object_id,
       **self.additional_info
     }
+  
+  def get_dynamo(self):
+    db_representation = {
+      "tag": {"S": self.tag},
+      "cite": {"S": self.cite},
+      "body": {"L": [{"S":p} for p in self.body]},
+      "highlights": { "L": [ { "L": [ {"N":str(i)} for i in v ] } for v in self.highlights ] },
+      "emphasis": {"L": [{"L": [{"N":str(i)} for i in v]} for v in self.emphasis]},
+      "underlines": {"L": [{"L": [{"N":str(i)} for i in v]} for v in self.underlines]},
+      "id": {"S": self.object_id}
+    }
+
+    if self.additional_info.get("division") is not None and self.additional_info.get("year") is not None:
+      db_representation["division"] = {"S": self.additional_info["division"]}
+      db_representation["year"] = {"S": self.additional_info["year"]}
+      db_representation["s3_url"] = {"S": f"https://logos-debate.s3.amazonaws.com/{self.additional_info['division']}/{self.additional_info['year']}/{self.additional_info['filename']}"}
+        
+    return db_representation
 
   def __str__(self):
     return f"{self.tag}\n{self.cite}\n{self.body}\n"

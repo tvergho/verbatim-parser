@@ -6,11 +6,10 @@ from bs4 import BeautifulSoup
 from os.path import exists
 from os import listdir
 from parser import Parser
-from search import Search
+from search import Search, bucket_name
 
 wiki_url = "https://opencaselist.paperlessdebate.com"
 tmp_folder = "./tmp/"
-bucket_name = "logos-debate"
 
 s3Client = boto3.client('s3')
 s3 = boto3.resource('s3')
@@ -88,14 +87,15 @@ class Scraper:
       s3.Object(bucket_name, key).load()
     except Exception as e:
       await loop.run_in_executor(None, s3Client.upload_file, folder + filename, bucket_name, key, ExtraArgs={"ACL": "public-read"})
-      print("Uploaded " + filename)
+      print("Uploaded file to S3: " + filename)
     finally:
       def parse_and_index(): 
         parser = Parser(tmp_folder + filename, {"filename": filename, "division": self.division, "year": self.year})
         print("Parsing " + filename)
         cards = parser.parse()
         search.upload_cards(cards)
-
+        search.upload_to_dynamo(cards)
+        
       await loop.run_in_executor(None, parse_and_index)
 
 if __name__ == "__main__":

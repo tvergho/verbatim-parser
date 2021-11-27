@@ -42,3 +42,4 @@ if __name__ == "__main__":
 
   search = Search()
   search.upload_cards(cards)
+  search.upload_to_dynamo(cards)
