@@ -35,13 +35,13 @@ class Search():
     })
     return response["hits"]["total"]["value"] > 0
 
-  def upload_cards(self, cards):
+  def upload_cards(self, cards, force_upload=False):
     card_objects = list(map(lambda card: card.get_index(), cards))
 
     if len(card_objects) == 0:
       return
 
-    if card_objects[0].get("filename") is not None:
+    if card_objects[0].get("filename") is not None and not force_upload:
       filename = card_objects[0].get("filename")
       if self.check_filename_in_search(filename):
         print(f"{filename} already in search, skipping")

@@ -82,11 +82,14 @@ class Card():
       "id": {"S": self.object_id}
     }
     
-    if self.additional_info.get("division") is not None and self.additional_info.get("year") is not None:
+    if self.additional_info.get("division") is not None and self.additional_info.get("year") is not None and self.additional_info.get("download_url") is not None:
       db_representation["division"] = {"S": self.additional_info["division"]}
       db_representation["year"] = {"S": self.additional_info["year"]}
-      db_representation["s3_url"] = {"S": f"https://logos-debate.s3.amazonaws.com/{self.additional_info['division']}/{self.additional_info['year']}/{self.additional_info['filename']}"}
-        
+      db_representation["download_url"] = {"S": self.additional_info["download_url"]}
+      db_representation["filename"] = {"S": self.additional_info["filename"]}
+      db_representation["school"] = {"S": self.additional_info["school"]}
+      db_representation["team"] = {"S": self.additional_info["team"]}
+
     return db_representation
 
   def __str__(self):

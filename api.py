@@ -64,7 +64,7 @@ class Api:
         'ReturnConsumedCapacity': 'NONE'
       }
       if preview == True:
-        kwargs['ProjectionExpression'] = "id,title,cite,tag,division,#y,s3_url"
+        kwargs['ProjectionExpression'] = "id,title,cite,tag,division,#y,s3_url,download_url"
         kwargs['ExpressionAttributeNames'] = {
           '#y': 'year'
         }

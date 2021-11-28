@@ -13,7 +13,8 @@ class Parser():
 
   def parse(self):
     current_card = []
-
+    print("Parsing " + self.filename)
+    
     for paragraph in self.document.paragraphs:
       if paragraph.style.name == TAG_NAME:
         try:
