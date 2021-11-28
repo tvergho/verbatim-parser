@@ -40,6 +40,6 @@ if __name__ == "__main__":
   parser = Parser(docx_name, {"filename": docx_name})
   cards = parser.parse()
 
-  search = Search()
-  search.upload_cards(cards)
-  search.upload_to_dynamo(cards)
+  # search = Search()
+  # search.upload_cards(cards)
+  # search.upload_to_dynamo(cards)

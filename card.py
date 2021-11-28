@@ -4,7 +4,7 @@ TAG_NAME = "Heading 4"
 NORMAL_NAME = "Normal"
 EMPHASIS_NAME = "Emphasis"
 UNDERLINE_NAME = "Underline"
-
+CITE_NAME = "13 pt Bold"
 class Card():
   def __init__(self, paragraphs, additional_info):
     if paragraphs[0].style.name != TAG_NAME or len(paragraphs) < 2:
@@ -18,6 +18,7 @@ class Card():
     if len(self.body) == 0:
       raise Exception("Card is too short")
 
+    self.cite_emphasis = []
     self.highlights = []
     self.emphasis = []
     self.underlines = []
@@ -27,6 +28,19 @@ class Card():
     self.object_id = hashlib.sha256(str(self).encode()).hexdigest()
 
   def parse_paragraphs(self):
+    j = 0
+
+    for r in self.paragraphs[1].runs:
+      run_text = r.text.strip()
+      run_index = self.paragraphs[1].text.find(run_text, j)
+
+      if run_index == -1:
+        continue
+      if CITE_NAME in r.style.name and (r.style.font.bold or r.font.bold):
+        self.cite_emphasis.append((run_index, run_index + len(run_text)))
+      
+      j = run_index + len(run_text)
+
     for i in range(2, len(self.paragraphs)):
       p = self.paragraphs[i]
       runs = p.runs
@@ -64,9 +78,10 @@ class Card():
       "highlights": { "L": [ { "L": [ {"N":str(i)} for i in v ] } for v in self.highlights ] },
       "emphasis": {"L": [{"L": [{"N":str(i)} for i in v]} for v in self.emphasis]},
       "underlines": {"L": [{"L": [{"N":str(i)} for i in v]} for v in self.underlines]},
+      "cite_emphasis": {"L": [{"L": [{"N":str(i)} for i in v]} for v in self.cite_emphasis]},
       "id": {"S": self.object_id}
     }
-
+    
     if self.additional_info.get("division") is not None and self.additional_info.get("year") is not None:
       db_representation["division"] = {"S": self.additional_info["division"]}
       db_representation["year"] = {"S": self.additional_info["year"]}
