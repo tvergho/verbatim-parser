@@ -34,6 +34,19 @@ class Search():
       "_source": False
     })
     return response["hits"]["total"]["value"] > 0
+  
+  def check_indexed(self, id):
+    response = self.db.get_item(
+      TableName=table_name,
+      Key={
+        'id': {
+          'S': id
+        }
+      },
+      ReturnConsumedCapacity='NONE',
+      ProjectionExpression='id,download_url'
+    )
+    return 'Item' in response and 'download_url' in response['Item']
 
   def upload_cards(self, cards, force_upload=False):
     card_objects = list(map(lambda card: card.get_index(), cards))
@@ -49,30 +62,32 @@ class Search():
 
     bulk_file = ""
     for card in card_objects:
+      if self.check_indexed(card['id']): continue
       bulk_file += ('{ "index" : { "_index" : "') + \
         (f"{index_prefix}-{card['division']}-{card['year']}" if card.get("division") is not None else index_prefix) + \
         ('", "_type" : "_doc", "_id" : "' + str(card["id"]) + '" } }\n')
 
       bulk_file += json.dumps({i:card[i] for i in card if i != 'id'}) + '\n'
 
-    self.search.bulk(body=bulk_file)
-    print(f"Uploaded to OpenSearch: {card_objects[0].get('filename')}" if card_objects[0].get("filename") is not None else "Uploaded!")
+    if bulk_file is not None and len(bulk_file) > 0:
+      self.search.bulk(body=bulk_file)
+      print(f"Uploaded to OpenSearch: {card_objects[0].get('filename')}" if card_objects[0].get("filename") is not None else "Uploaded!")
   
   def upload_to_dynamo(self, cards):
     if len(cards) == 0:
       return
       
-    self.unprocessed_cards.extend(list(map(lambda card: {"PutRequest": {"Item": card.get_dynamo()}}, cards)))
+    self.unprocessed_cards.extend(list(map(lambda card: {"PutRequest": {"Item": card.get_dynamo()}}, filter(lambda card : not self.check_indexed(card.object_id), cards))))
     to_process = self.unprocessed_cards[:25]
     self.unprocessed_cards = self.unprocessed_cards[25:]
 
-    response = self.db.batch_write_item(
-      RequestItems={
-        table_name: to_process
-      }
-    )
+    if len(to_process) > 0:
+      response = self.db.batch_write_item(
+        RequestItems={
+          table_name: to_process
+        }
+      )
 
-    unprocessed = response.get("UnprocessedItems", {}).get(table_name, [])
-    self.unprocessed_cards.extend(unprocessed)
-
-    print(f"Added to DynamoDB queue: {cards[0].additional_info.get('filename')}" if cards[0].additional_info.get('filename') is not None else "Uploaded!")
+      unprocessed = response.get("UnprocessedItems", {}).get(table_name, [])
+      self.unprocessed_cards.extend(unprocessed)
+      print(f"Added to DynamoDB queue: {cards[0].additional_info.get('filename')}" if cards[0].additional_info.get('filename') is not None else "Uploaded!")

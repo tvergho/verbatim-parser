@@ -23,12 +23,10 @@ search = Search()
 def parse_and_upload(folder, filename, additional_info):
   try:
     parser = Parser(folder + filename, additional_info)
-    print("Parsing " + filename)
     cards = parser.parse()
     search.upload_cards(cards, True)
-    print("Indexed " + filename)
     search.upload_to_dynamo(cards)
-    print("Uploaded to DynamoDB: " + filename)
+    print(f"{filename} processed")
   except Exception as e:
     print(e)
     print(traceback.format_exc())
