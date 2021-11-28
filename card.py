@@ -54,7 +54,7 @@ class Card():
           continue
         if r.font.highlight_color is not None:
           self.highlights.append((i, run_index, run_index + len(run_text)))
-        if UNDERLINE_NAME in r.style.name:
+        if UNDERLINE_NAME in r.style.name or r.font.underline or r.style.font.underline:
           self.underlines.append((i, run_index, run_index + len(run_text)))
         if EMPHASIS_NAME in r.style.name:
           self.emphasis.append((i, run_index, run_index + len(run_text)))

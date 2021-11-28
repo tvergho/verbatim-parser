@@ -13,6 +13,8 @@ awsauth = AWS4Auth(credentials.access_key, credentials.secret_key, region, servi
 app = Flask(__name__)
 CORS(app)
 
+results_per_page = 100
+
 class Api:
   def __init__(self):
     self.client = OpenSearch(
@@ -31,7 +33,7 @@ class Api:
 
   def query_search(self, q):
     query = {
-      "size": 20,
+      "size": results_per_page,
       "query": {
         "multi_match": {
           "query": q,
