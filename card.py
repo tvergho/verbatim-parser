@@ -36,7 +36,7 @@ class Card():
 
       if run_index == -1:
         continue
-      if CITE_NAME in r.style.name and (r.style.font.bold or r.font.bold):
+      if CITE_NAME in r.style.name or (r.style.font.bold or r.font.bold):
         self.cite_emphasis.append((run_index, run_index + len(run_text)))
       
       j = run_index + len(run_text)
