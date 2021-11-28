@@ -2,11 +2,13 @@ import requests
 import time
 import asyncio
 import boto3
+import traceback
 from bs4 import BeautifulSoup
 from os.path import exists
 from os import listdir
 from parser import Parser
 from search import Search, bucket_name
+from urllib.parse import unquote
 
 wiki_url = "https://opencaselist.paperlessdebate.com"
 tmp_folder = "./tmp/"
@@ -77,10 +79,10 @@ class Scraper:
   
   async def upload_documents(self, folder):
     search = Search()
-    await asyncio.gather(*[self.upload_document(filename, search) for filename in listdir(folder)])
+    await asyncio.gather(*[self.upload_document(filename, search, folder) for filename in listdir(folder)])
    
-  async def upload_document(self, filename, search):
-    key = self.dir_name + filename
+  async def upload_document(self, filename, search, folder):
+    key = self.dir_name + unquote(filename)
     loop = asyncio.get_event_loop()
 
     try: 
@@ -89,13 +91,18 @@ class Scraper:
       await loop.run_in_executor(None, s3Client.upload_file, folder + filename, bucket_name, key, ExtraArgs={"ACL": "public-read"})
       print("Uploaded file to S3: " + filename)
     finally:
-      def parse_and_index(): 
-        parser = Parser(tmp_folder + filename, {"filename": filename, "division": self.division, "year": self.year})
-        print("Parsing " + filename)
-        cards = parser.parse()
-        search.upload_cards(cards)
-        search.upload_to_dynamo(cards)
-        
+      def parse_and_index():
+        try:
+          parser = Parser(tmp_folder + filename, {"filename": unquote(filename), "division": self.division, "year": self.year})
+          print("Parsing " + filename)
+          cards = parser.parse()
+          search.upload_cards(cards)
+          print("Indexed " + filename)
+          search.upload_to_dynamo(cards)
+          print("Uploaded to DynamoDB: " + filename)
+        except Exception as e:
+          traceback.print_exc()
+
       await loop.run_in_executor(None, parse_and_index)
 
 if __name__ == "__main__":
