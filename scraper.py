@@ -22,6 +22,10 @@ search = Search()
 
 def parse_and_upload(folder, filename, additional_info):
   try:
+    if search.check_filename_in_search(unquote(filename)):
+      print(f"{filename} already in search, skipping")
+      return
+
     parser = Parser(folder + filename, additional_info)
     cards = parser.parse()
     search.upload_cards(cards, True)
@@ -163,6 +167,8 @@ if __name__ == "__main__":
   scraper = Scraper(wiki_url, "college", "21-22", tmp_folder)
   scraper.load_download_urls()
   executables = scraper.upload_documents()
+  # for executable in executables:
+  #   parse_and_upload(executable[0], executable[1], executable[2])
   pool.starmap(parse_and_upload, executables)
   pool.close()
   pool.join()

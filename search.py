@@ -27,13 +27,14 @@ class Search():
   def check_filename_in_search(self, filename):
     response = self.search.search(index=f"{index_prefix}-*", body={
       "query": {
-        "match": {
-          "filename": filename
+        "term": {
+          "filename.keyword": filename
         }
       },
       "_source": False
     })
-    return response["hits"]["total"]["value"] > 0
+
+    return len(response["hits"]['hits']) > 0
   
   def check_indexed(self, id):
     response = self.db.get_item(
