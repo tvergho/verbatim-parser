@@ -118,9 +118,9 @@ class Scraper:
     if exists(self.folder + filename):
       return
 
-    doc = requests.get(url, stream=True)
+    doc = await self.session.get(url)
     with open(self.folder + filename, "wb") as f:
-      for chunk in doc.iter_content(chunk_size=1024):
+      async for chunk in doc.content.iter_chunked(1024):
         if chunk:
           f.write(chunk)
     return filename

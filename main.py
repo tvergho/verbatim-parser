@@ -1,5 +1,5 @@
 from multiprocessing import Pool
-from scraper import download_doc, Scraper
+from scraper import download_doc, Scraper, parse_and_upload
 from os.path import exists
 import asyncio
 import sys
