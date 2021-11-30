@@ -34,7 +34,7 @@ class Search():
       "_source": False
     })
 
-    return len(response["hits"]['hits']) > 0
+    return len(response['hits']['hits']) > 0
   
   def check_indexed(self, id):
     response = self.db.get_item(

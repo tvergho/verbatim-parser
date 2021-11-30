@@ -13,7 +13,7 @@ awsauth = AWS4Auth(credentials.access_key, credentials.secret_key, region, servi
 app = Flask(__name__)
 CORS(app)
 
-results_per_page = 100
+results_per_page = 20
 
 class Api:
   def __init__(self):
@@ -64,7 +64,7 @@ class Api:
         'ReturnConsumedCapacity': 'NONE'
       }
       if preview == True:
-        kwargs['ProjectionExpression'] = "id,title,cite,tag,division,#y,s3_url,download_url"
+        kwargs['ProjectionExpression'] = "id,title,cite,tag,division,#y,s3_url,download_url,cite_emphasis"
         kwargs['ExpressionAttributeNames'] = {
           '#y': 'year'
         }
