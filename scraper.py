@@ -7,7 +7,7 @@ import json
 import sys
 from bs4 import BeautifulSoup
 from os.path import exists
-from os import listdir
+from os import listdir, makedirs
 from parser import Parser
 from search import Search, bucket_name
 from urllib.parse import unquote
@@ -16,6 +16,7 @@ from multiprocessing import Pool
 
 wiki_url = "https://opencaselist.paperlessdebate.com"
 tmp_folder = "./tmp/"
+download_doc = "download_urls.txt"
 
 sys.setrecursionlimit(25000)
 search = Search()
@@ -37,8 +38,13 @@ def parse_and_upload(folder, filename, additional_info):
 class Scraper:
   def __init__(self, url, division, year, folder):
     self.url = url
-    self.folder = folder
-    self.dir_name = division + "/" + year + "/"
+    self.folder = folder + division + "/" + year + "/"
+
+    try:
+      makedirs(self.folder)
+    except:
+      pass
+
     self.division = division
     self.year = year
 
@@ -55,21 +61,23 @@ class Scraper:
 
   async def scrape(self):
     await asyncio.gather(*[self.scrape_school(school) for school in self.schools])
-    f = open(self.folder + "download_urls.txt", "w")
+    f = open(self.folder + download_doc, "w")
     json.dump(self.download_urls, f)
     f.close()
 
   def load_download_urls(self):
-    f = open(self.folder + "download_urls.txt", "r")
+    f = open(self.folder + download_doc, "r")
     self.download_urls = json.load(f)
     f.close()
 
   async def scrape_school(self, school):
     href = school["href"]
     name = school["name"]
-    school_page = await self.session.get(wiki_url + href)
+    school_page = await self.session.get(self.url + href)
     contents = await school_page.read()
     soup = BeautifulSoup(contents.decode('utf-8'), "html.parser")
+    if soup.find("table", id="tblTeams") is None:
+      return
 
     teams_table = soup.find("table", id="tblTeams").contents
     teams = teams_table[1:]
@@ -78,8 +86,8 @@ class Scraper:
     aff_urls = []
     neg_urls = []
     for team in teams:
-      aff_url = wiki_url + team[0]
-      neg_url = wiki_url + team[1]
+      aff_url = self.url + team[0]
+      neg_url = self.url + team[1]
       aff_urls.append(aff_url)
       neg_urls.append(neg_url)
 
@@ -167,8 +175,6 @@ if __name__ == "__main__":
   scraper = Scraper(wiki_url, "college", "21-22", tmp_folder)
   scraper.load_download_urls()
   executables = scraper.upload_documents()
-  # for executable in executables:
-  #   parse_and_upload(executable[0], executable[1], executable[2])
   pool.starmap(parse_and_upload, executables)
   pool.close()
   pool.join()
