@@ -4,7 +4,7 @@ import re
 
 # Grabow '19 - Policy analyst at the Cato Institute’s Herbert A. Stiefel Center for Trade Policy Studies [Colin, Nov 12, Rust Buckets: How the Jones Act Undermines U.S. Shipbuilding and National Security, https://www.cato.org/policy-analysis/rust-buckets-how-jones-act-undermines-us-shipbuilding-national-security]
 
-date_str = "Grabow '19 - Policy analyst at the Cato Institute’s Herbert A. Stiefel Center for Trade Policy Studies [Colin, Nov 12, Rust Buckets: How the Jones Act Undermines U.S. Shipbuilding and National Security, https://www.cato.org/policy-analysis/rust-buckets-how-jones-act-undermines-us-shipbuilding-national-security]"
+date_str = "Robert Grosse et. al, 3-3-2021, Affiliations Thunderbird School of Global Management, Arizona State University, Phoenix, AZ, USA Robert Grosse, Jonas Gamso & Roy C. Nelson, China’s Rise, World Order, and the Implications for International Business, Management International Review, https://link.springer.com/article/10.1007/s11575-020-00433-8; accessed 8-24-2021"
 words = list(filter(lambda word : word.lower() != "and" and word.lower() != "or" and word.lower() != "of", map(lambda w : re.sub(r'[^a-zA-Z0-9/-]', '', w), date_str.split(" "))))
 words = list(itertools.takewhile(lambda word : word.lower() != "accessed", words))
 possibilities = []
