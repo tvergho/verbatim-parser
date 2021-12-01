@@ -4,6 +4,7 @@ TAG_NAME = "Heading 4"
 NORMAL_NAME = "Normal"
 EMPHASIS_NAME = "Emphasis"
 UNDERLINE_NAME = "Underline"
+LIST_PARAGRAPH_NAME = "List Paragraph"
 CITE_NAME = "13 pt Bold"
 class Card():
   def __init__(self, paragraphs, additional_info):
@@ -13,7 +14,7 @@ class Card():
     self.paragraphs = paragraphs
     self.tag = paragraphs[0].text.strip(", ")
     self.cite = paragraphs[1].text
-    self.body = [p.text for p in paragraphs[2:] if p.style.name == NORMAL_NAME]
+    self.body = [p.text for p in paragraphs[2:] if p.style.name == NORMAL_NAME or p.style.name == LIST_PARAGRAPH_NAME]
 
     if len(self.body) == 0:
       raise Exception("Card is too short")

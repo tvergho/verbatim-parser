@@ -16,10 +16,11 @@ class Parser():
     print("Parsing " + self.filename)
     
     for paragraph in self.document.paragraphs:
+      print(paragraph.style.name)
       if paragraph.style.name == TAG_NAME:
         try:
           self.cards.append(Card(current_card, self.additional_info))
-        except:
+        except Exception as e:
           continue
         finally:
           current_card = [paragraph]
