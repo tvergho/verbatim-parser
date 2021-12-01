@@ -2,10 +2,9 @@ from dateutil import parser
 import itertools
 import re
 
-# "Kerry Lynn Macintosh 97, Associate Professor of Law, Santa Clara University School of Law. B.A. 1978, Pomona College; J.D. 1982, Stanford University, “Liberty, Trade, and the Uniform Commercial Code: When Should Default Rules Be Based On Business Practices?,” 38 Wm. & Mary L. Rev. 1465, Lexis"
-# Philip C. Kissam 83, Professor of Law, University of Kansas. B.A. 1963, Amherst College; LL.B. 1968, Yale University. "Antitrust Law and Professional Behavior", 62 Tex. L. Rev. 1
+# Grabow '19 - Policy analyst at the Cato Institute’s Herbert A. Stiefel Center for Trade Policy Studies [Colin, Nov 12, Rust Buckets: How the Jones Act Undermines U.S. Shipbuilding and National Security, https://www.cato.org/policy-analysis/rust-buckets-how-jones-act-undermines-us-shipbuilding-national-security]
 
-date_str = "Philip C. Kissam 83, Professor of Law, University of Kansas. B.A. 1963, Amherst College; LL.B. 1968, Yale University. Antitrust Law and Professional Behavior, 62 Tex. L. Rev. 1"
+date_str = "Grabow '19 - Policy analyst at the Cato Institute’s Herbert A. Stiefel Center for Trade Policy Studies [Colin, Nov 12, Rust Buckets: How the Jones Act Undermines U.S. Shipbuilding and National Security, https://www.cato.org/policy-analysis/rust-buckets-how-jones-act-undermines-us-shipbuilding-national-security]"
 words = list(filter(lambda word : word.lower() != "and" and word.lower() != "or" and word.lower() != "of", map(lambda w : re.sub(r'[^a-zA-Z0-9/-]', '', w), date_str.split(" "))))
 words = list(itertools.takewhile(lambda word : word.lower() != "accessed", words))
 possibilities = []
@@ -38,7 +37,7 @@ for combo in combos:
   except Exception as e:
     pass
 
-possibilities = [x for _, x in sorted(zip(weights, possibilities), reverse=True)]
+possibilities = [x for _, x in sorted(zip(weights, possibilities), reverse=True, key=lambda c : c[0])]
 possibilities = list(filter(lambda x : x.year > 1900, possibilities))
 
 date = possibilities[0]

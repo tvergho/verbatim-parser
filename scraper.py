@@ -60,7 +60,8 @@ class Scraper:
     self.session = aiohttp.ClientSession()
 
   async def scrape(self):
-    await asyncio.gather(*[self.scrape_school(school) for school in self.schools])
+    for school in self.schools:
+      await self.scrape_school(school)
     f = open(self.folder + download_doc, "w")
     json.dump(self.download_urls, f)
     f.close()
@@ -97,18 +98,22 @@ class Scraper:
     print("Scraped " + name)
 
   async def scrape_wiki_page(self, url):
-    page = await self.session.get(url)
-    contents = await page.read()
-    soup = BeautifulSoup(contents.decode('utf-8'), "html.parser")
-    links = set(filter(lambda href : "docx" in href, map(lambda el : el.contents[0].attrs["href"], soup.find_all("span", class_="wikiexternallink"))))
+    try:
+      page = await self.session.get(url)
+      contents = await page.read()
+      soup = BeautifulSoup(contents.decode('utf-8'), "html.parser")
+      links = set(filter(lambda href : "docx" in href, map(lambda el : el.contents[0].attrs["href"], soup.find_all("span", class_="wikiexternallink"))))
+    except Exception as e:
+      await asyncio.sleep(10)
+      return
 
     try:
       await asyncio.gather(*[self.download_document(url) for url in links])
       await asyncio.sleep(0.5)
+      print("Scraped " + url)
     except Exception as e:
+      await asyncio.sleep(10)
       print(e)
-
-    print("Scraped " + url)
   
   async def download_document(self, url):
     filename = url.split("/")[-1].split("?")[0]
@@ -120,9 +125,12 @@ class Scraper:
 
     doc = await self.session.get(url)
     with open(self.folder + filename, "wb") as f:
-      async for chunk in doc.content.iter_chunked(1024):
-        if chunk:
-          f.write(chunk)
+      while True:
+        chunk = await doc.content.read(1024)
+        if not chunk:
+          break
+        f.write(chunk)
+    await asyncio.sleep(0.5)
     return filename
   
   def upload_documents(self):
