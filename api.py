@@ -26,14 +26,16 @@ class Api:
     )
     self.db = boto3.client('dynamodb', region_name=region)
   
-  async def query(self, q):
-    results = self.query_search(q)
+  async def query(self, q, from_value=0):
+    results = self.query_search(q, from_value)
     db_results = await asyncio.gather(*[self.get_by_id(result['_id']) for result in results])
-    return [result for result in db_results if result != None]
+    cursor = from_value + len(results)
+    return ([result for result in db_results if result != None], cursor)
 
-  def query_search(self, q):
+  def query_search(self, q, from_value):
     query = {
       "size": results_per_page,
+      "from": from_value,
       "query": {
         "multi_match": {
           "query": q,
@@ -47,7 +49,7 @@ class Api:
       body=query,
       index=index_prefix + '*'
     )
-
+    
     return response['hits']['hits']
 
   async def get_by_id(self, id, preview=True):
@@ -81,9 +83,10 @@ class Api:
 @app.route("/query", methods=['GET'])
 def query():
   search = request.args.get('search')
+  cursor = int(request.args.get('cursor', 0))
   api = Api()
-  results = asyncio.run(api.query(search))
-  return {"count": len(results), "results": results}
+  (results, cursor) = asyncio.run(api.query(search, cursor))
+  return {"count": len(results), "results": results, "cursor": cursor}
 
 @app.route("/card", methods=['GET'])
 def get_card():
