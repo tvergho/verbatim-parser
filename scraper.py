@@ -92,8 +92,10 @@ class Scraper:
       aff_urls.append(aff_url)
       neg_urls.append(neg_url)
 
-    await asyncio.gather(*[self.scrape_wiki_page(aff_url) for aff_url in aff_urls])
-    await asyncio.gather(*[self.scrape_wiki_page(neg_url) for neg_url in neg_urls])
+    for aff_url in aff_urls:
+      await self.scrape_wiki_page(aff_url)
+    for neg_url in neg_urls:
+      await self.scrape_wiki_page(neg_url)
 
     print("Scraped " + name)
 
@@ -130,7 +132,6 @@ class Scraper:
         if not chunk:
           break
         f.write(chunk)
-    await asyncio.sleep(0.5)
     return filename
   
   def upload_documents(self):

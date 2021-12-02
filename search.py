@@ -7,7 +7,7 @@ host = 'search-logos-test-liwqw3bnlb3qyn3kvfhxyqkldi.us-west-1.es.amazonaws.com'
 region = 'us-west-1'
 table_name = 'logos-debate'
 bucket_name = "logos-debate"
-index_prefix = "cards"
+index_prefix = "cards2"
 
 service = 'es'
 credentials = boto3.Session().get_credentials()

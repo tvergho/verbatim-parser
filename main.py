@@ -4,7 +4,7 @@ from os.path import exists
 import asyncio
 import sys
 
-wiki_url = "https://opencaselist20.paperlessdebate.com"
+wiki_url = "https://opencaselist.paperlessdebate.com"
 tmp_folder = "./tmp/"
 
 pool = Pool(processes=8)
@@ -24,4 +24,4 @@ async def process_downloaded_documents(url, division, year):
 
   await scraper.session.close()
 
-asyncio.run(process_downloaded_documents(wiki_url, "college", "20-21"))
+asyncio.run(process_downloaded_documents(wiki_url, "college", "21-22"))

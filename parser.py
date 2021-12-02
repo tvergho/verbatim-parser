@@ -41,6 +41,7 @@ if __name__ == "__main__":
   
   parser = Parser(docx_name, {"filename": docx_name})
   cards = parser.parse()
+  print([{i:v for i,v in card.get_index().items() if i != 'body'} for card in cards])
 
   # search = Search()
   # search.upload_cards(cards)
