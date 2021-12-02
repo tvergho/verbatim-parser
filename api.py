@@ -4,11 +4,15 @@ from requests_aws4auth import AWS4Auth
 from dynamodb_json import json_util as json
 from flask import Flask, request
 from flask_cors import CORS
+from dotenv import load_dotenv
 import boto3
+import os
 import sys
 import asyncio
 
-credentials = boto3.Session().get_credentials()
+load_dotenv()
+
+credentials = boto3.Session(aws_access_key_id=os.environ['AWS_ACCESS_KEY_ID'], aws_secret_access_key=os.environ['AWS_SECRET_ACCESS_KEY']).get_credentials()
 awsauth = AWS4Auth(credentials.access_key, credentials.secret_key, region, service)
 app = Flask(__name__)
 CORS(app)
@@ -24,7 +28,7 @@ class Api:
       verify_certs = True,
       connection_class = RequestsHttpConnection
     )
-    self.db = boto3.client('dynamodb', region_name=region)
+    self.db = boto3.client('dynamodb', region_name=region, aws_access_key_id=os.environ['AWS_ACCESS_KEY_ID'], aws_secret_access_key=os.environ['AWS_SECRET_ACCESS_KEY'])
   
   async def query(self, q, from_value=0):
     results = self.query_search(q, from_value)

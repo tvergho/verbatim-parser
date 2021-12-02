@@ -24,4 +24,5 @@ async def process_downloaded_documents(url, division, year):
 
   await scraper.session.close()
 
-asyncio.run(process_downloaded_documents(wiki_url, "college", "21-22"))
+loop = asyncio.get_event_loop()
+loop.run_until_complete(process_downloaded_documents(wiki_url, "college", "21-22"))

@@ -1,7 +1,11 @@
 from opensearchpy import OpenSearch, RequestsHttpConnection
 from requests_aws4auth import AWS4Auth
+from dotenv import load_dotenv
+import os
 import boto3
 import json
+
+load_dotenv()
 
 host = 'search-logos-test-liwqw3bnlb3qyn3kvfhxyqkldi.us-west-1.es.amazonaws.com' # For example, my-test-domain.us-east-1.es.amazonaws.com
 region = 'us-west-1'
@@ -10,7 +14,7 @@ bucket_name = "logos-debate"
 index_prefix = "cards2"
 
 service = 'es'
-credentials = boto3.Session().get_credentials()
+credentials = boto3.Session(aws_access_key_id=os.environ['AWS_ACCESS_KEY_ID'], aws_secret_access_key=os.environ['AWS_SECRET_ACCESS_KEY']).get_credentials()
 awsauth = AWS4Auth(credentials.access_key, credentials.secret_key, region, service)
 class Search():
   def __init__(self):
@@ -21,7 +25,7 @@ class Search():
       verify_certs = True,
       connection_class = RequestsHttpConnection
     )
-    self.db = boto3.client('dynamodb', region_name=region)
+    self.db = boto3.client('dynamodb', region_name=region, aws_access_key_id=os.environ['AWS_ACCESS_KEY_ID'], aws_secret_access_key=os.environ['AWS_SECRET_ACCESS_KEY'])
     self.unprocessed_cards = []
 
   def check_filename_in_search(self, filename):
