@@ -1,6 +1,9 @@
 from dateutil import parser
 import itertools
 import re
+import datetime
+
+# Cliff Mass 19. American professor of Atmospheric Sciences at the University of Washington. His research focuses on numerical weather modeling and prediction, the role of topography in the evolution of weather systems, regional climate modeling, and the weather of the Pacific Northwest. 8-12-19. “Is Global Warming an Existential Threat? Probably Not, But Still a Serious Issue.” https://cliffmass.blogspot.com/2019/08/is-global-warming-existential-threat.html. DOA: 3-25-2020. kyujin. Edited for gendered language [denoted with brackets]
 
 def append_to_year_string(year):
   try:
@@ -36,7 +39,7 @@ def generate_date_from_cite(date_str, verbose=False):
         combo.append(d_str)
         weight += len(d_str)
 
-      possibilities.append(parser.parse(" ".join(combo)))
+      possibilities.append(parser.parse(" ".join(combo), default=datetime.datetime(2000, 1, 1)))
 
       successes.append(combo)
       weights.append(weight)
@@ -46,9 +49,12 @@ def generate_date_from_cite(date_str, verbose=False):
   possibilities = [x for _, x in sorted(zip(weights, possibilities), reverse=True, key=lambda c : c[0])]
   possibilities = list(filter(lambda x : x.year > 1900, possibilities))
 
+  if len(possibilities) == 0:
+    return None
+
   date = possibilities[0]
   if verbose:
     print(successes)
     print(date.strftime("%m/%d/%Y"))
 
-  return date
+  return date.date() if date is not None else None

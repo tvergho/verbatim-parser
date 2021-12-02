@@ -1,5 +1,6 @@
 import sys
 import os
+import traceback
 from docx import Document
 from card import TAG_NAME, Card
 from search import Search
@@ -16,7 +17,6 @@ class Parser():
     print("Parsing " + self.filename)
     
     for paragraph in self.document.paragraphs:
-      print(paragraph.style.name)
       if paragraph.style.name == TAG_NAME:
         try:
           self.cards.append(Card(current_card, self.additional_info))

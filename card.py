@@ -1,4 +1,5 @@
 import hashlib
+from date_test import generate_date_from_cite
 
 TAG_NAME = "Heading 4"
 NORMAL_NAME = "Normal"
@@ -13,20 +14,27 @@ class Card():
 
     self.paragraphs = paragraphs
     self.tag = paragraphs[0].text.strip(", ")
-    self.cite = paragraphs[1].text
-    self.body = [p.text for p in paragraphs[2:] if p.style.name == NORMAL_NAME or p.style.name == LIST_PARAGRAPH_NAME]
+    for i in range(1, len(paragraphs)):
+      if not any(c.isdigit() for c in paragraphs[i].text):
+        self.tag += " " + paragraphs[i].text
+      else:
+        self.cite = paragraphs[i].text
+        self.body = [p.text for p in paragraphs[i+1:] if p.style.name == NORMAL_NAME or p.style.name == LIST_PARAGRAPH_NAME]
+        break
 
-    if len(self.body) == 0:
+    if not self.body or len("".join(self.body)) < 25:
       raise Exception("Card is too short")
 
     self.cite_emphasis = []
     self.highlights = []
+    self.highlighted_text = ""
     self.emphasis = []
     self.underlines = []
     self.parse_paragraphs()
 
     self.additional_info = additional_info
     self.object_id = hashlib.sha256(str(self).encode()).hexdigest()
+    self.cite_date = generate_date_from_cite(self.cite)
 
   def parse_paragraphs(self):
     j = 0
@@ -55,6 +63,7 @@ class Card():
           continue
         if r.font.highlight_color is not None:
           self.highlights.append((i, run_index, run_index + len(run_text)))
+          self.highlighted_text += " " + run_text
         if UNDERLINE_NAME in r.style.name or r.font.underline or r.style.font.underline:
           self.underlines.append((i, run_index, run_index + len(run_text)))
         if EMPHASIS_NAME in r.style.name:
@@ -63,18 +72,23 @@ class Card():
         j = run_index + len(run_text)
   
   def get_index(self):
-    return {
+    index = {
       "tag": self.tag,
       "cite": self.cite,
       "body": self.body,
       "id": self.object_id,
+      "highlighted_text": self.highlighted_text,
       **self.additional_info
     }
+    if self.cite_date is not None:
+      index["cite_date"] = self.cite_date.strftime("%Y-%m-%d")
+    return index
   
   def get_dynamo(self):
     db_representation = {
       "tag": {"S": self.tag},
       "cite": {"S": self.cite},
+      "highlighted_text": {"S": self.highlighted_text},
       "body": {"L": [{"S":p} for p in self.body]},
       "highlights": { "L": [ { "L": [ {"N":str(i)} for i in v ] } for v in self.highlights ] },
       "emphasis": {"L": [{"L": [{"N":str(i)} for i in v]} for v in self.emphasis]},
@@ -90,6 +104,9 @@ class Card():
       db_representation["filename"] = {"S": self.additional_info["filename"]}
       db_representation["school"] = {"S": self.additional_info["school"]}
       db_representation["team"] = {"S": self.additional_info["team"]}
+    
+    if self.cite_date is not None:
+      db_representation["cite_date"] = {"S": self.cite_date.strftime("%Y-%m-%d")}
 
     return db_representation
 
