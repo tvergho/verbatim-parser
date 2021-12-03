@@ -5,11 +5,68 @@ OBOR, one belt one road, BRI, belt and road initiative
 FTC, federal trade commission
 SEC, securities and exchange commission
 DOJ, department of justice
-XO, executive order
+XO, executive order, XOs, executive orders
 BBB, build back better
+US, U.S., United States, America, American
+R&D, research and development
+antitrust, competition law
+LIO, liberal order, liberal international order, international order
+SCS, south china sea
+ECS, east china sea
+CNC, command and control, NC3
+DPT, democratic peace theory, democratic peace
+DCC, dormant commerce clause, commerce clause
+
+econ, economy, economies, economic
+dedev, dedevelopment, degrowth, de-dedevelopment
+warming, global warming, climate change
+extinction, existential
+war, conflict, wars, conflicts
+uncertain, uncertainty, ambiguity
+success, successful
+ag, agriculture, food
+empirics, empirical
+peace, peaceful
+heg, hegemony
+retal, retaliation
+immunize, immunizes, shield, shields, insulate, insulates
+increase, increasing
+decrease, decreasing, decline, declines, diminish
+growth, economic growth
+sustainable, sustained, sustainability, sustainably, long-term
+unsustainable, unsustainability, unsustainably
+judges, judge, justices, justice
+court, courts, judicial, judiciary
+constitution, constitutional
+legislation, law, laws, statutes
+legislative, congress, congressional
+doctrine, doctrinal, precedent, precedential
+president, commmander in chief, executive
+suit, suits, lawsuit, lawsuits, litigation
+innovation, innovate
+regulation, regulate, regulator
+multilat, multilateralism, institutions, institutionalism
+collusion, colluder, colluders, colluded
+tech, technology, technical, technological
+nano, nano-tech, nanotech
+crisis, crises
+prove, proves
+econ decline, economic decline, stagnation, slow growth, recession, depression
+democrat, democrats, dems, liberal, liberals
+republicans, conservative, conservatives, republican, gop
+perception, perceptual, perceptually, signal, signalling, signals
+covid, covid-19, coronavirus, delta
+narrow, limited, targeted
+broad, expansive, sweeping
 
 uniqueness, uq
 internal link, i/l
+ev, evidence
+solve, solves, solvency
+CP, counterplan
+USFG, united states federal government
+laundry list, litany, slew, host
+no impact, doesn't cause extinction, not existential
 
 1, one, first, 1st
 2, two, second, 2nd

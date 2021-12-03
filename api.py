@@ -30,25 +30,41 @@ class Api:
     )
     self.db = boto3.client('dynamodb', region_name=region, aws_access_key_id=os.environ['AWS_ACCESS_KEY_ID'], aws_secret_access_key=os.environ['AWS_SECRET_ACCESS_KEY'])
   
-  async def query(self, q, from_value=0):
-    results = self.query_search(q, from_value)
+  async def query(self, q, from_value=0, start_date="", end_date=""):
+    results = self.query_search(q, from_value, start_date, end_date)
     db_results = await asyncio.gather(*[self.get_by_id(result['_id']) for result in results])
     cursor = from_value + len(results)
     return ([result for result in db_results if result != None], cursor)
 
-  def query_search(self, q, from_value):
+  def query_search(self, q, from_value, start_date="", end_date=""):
     query = {
       "size": results_per_page,
       "from": from_value,
       "query": {
-        "multi_match": {
-          "query": q,
-          "fields": ["tag^4", "highlighted_text^3", "cite^2", "body"],
-          "fuzziness" : "AUTO"
+        "bool": {
+          "must": {
+            "multi_match": {
+              "query": q,
+              "fields": ["tag^4", "highlighted_text^3", "cite^2", "body"],
+              "fuzziness" : "AUTO"
+            }
+          }
         }
       },
       "_source": False
     }
+
+    if start_date != "" and end_date != "":
+      query["query"]["bool"]["filter"] = [
+          {
+            "range": {
+              "cite_date": {
+                "gte": start_date,
+                "lte": end_date
+              }
+            }
+          }
+        ]
 
     response = self.client.search(
       body=query,
@@ -89,8 +105,11 @@ class Api:
 def query():
   search = request.args.get('search')
   cursor = int(request.args.get('cursor', 0))
+  start_date = request.args.get('start_date', '')
+  end_date = request.args.get('end_date', '')
+
   api = Api()
-  (results, cursor) = asyncio.run(api.query(search, cursor))
+  (results, cursor) = asyncio.run(api.query(search, cursor, start_date=start_date, end_date=end_date))
   return {"count": len(results), "results": results, "cursor": cursor}
 
 @app.route("/card", methods=['GET'])
