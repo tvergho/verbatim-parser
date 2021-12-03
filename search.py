@@ -67,7 +67,6 @@ class Search():
 
     bulk_file = ""
     for card in card_objects:
-      if self.check_indexed(card['id']): continue
       bulk_file += ('{ "index" : { "_index" : "') + \
         (f"{index_prefix}-{card['division']}-{card['year']}" if card.get("division") is not None else index_prefix) + \
         ('", "_type" : "_doc", "_id" : "' + str(card["id"]) + '" } }\n')
@@ -82,7 +81,7 @@ class Search():
     if len(cards) == 0:
       return
       
-    self.unprocessed_cards.extend(list(map(lambda card: {"PutRequest": {"Item": card.get_dynamo()}}, filter(lambda card : not self.check_indexed(card.object_id), cards))))
+    self.unprocessed_cards.extend(list(map(lambda card: {"PutRequest": {"Item": card.get_dynamo()}}, cards)))
     to_process = self.unprocessed_cards[:25]
     self.unprocessed_cards = self.unprocessed_cards[25:]
 

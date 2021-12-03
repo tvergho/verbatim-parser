@@ -44,8 +44,7 @@ class Api:
         "multi_match": {
           "query": q,
           "fields": ["tag^4", "cite^2", "body"],
-          "fuzziness" : "AUTO",
-          "analyzer": "syn_analyzer"
+          "fuzziness" : "AUTO"
         }
       },
       "_source": False
@@ -53,7 +52,7 @@ class Api:
 
     response = self.client.search(
       body=query,
-      index='cards*'
+      index=index_prefix + '*'
     )
     
     return response['hits']['hits']

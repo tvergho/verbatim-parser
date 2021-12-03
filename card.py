@@ -14,11 +14,13 @@ class Card():
 
     self.paragraphs = paragraphs
     self.tag = paragraphs[0].text.strip(", ")
+    self.tag_sub = ""
     for i in range(1, len(paragraphs)):
       if not any(c.isdigit() for c in paragraphs[i].text):
-        self.tag += " " + paragraphs[i].text
+        self.tag_sub += paragraphs[i].text + " "
       else:
         self.cite = paragraphs[i].text
+        self.cite_i = i
         self.body = [p.text for p in paragraphs[i+1:] if p.style.name == NORMAL_NAME or p.style.name == LIST_PARAGRAPH_NAME]
         break
 
@@ -39,9 +41,9 @@ class Card():
   def parse_paragraphs(self):
     j = 0
 
-    for r in self.paragraphs[1].runs:
+    for r in self.paragraphs[self.cite_i].runs:
       run_text = r.text.strip()
-      run_index = self.paragraphs[1].text.find(run_text, j)
+      run_index = self.paragraphs[self.cite_i].text.find(run_text, j)
 
       if run_index == -1:
         continue
@@ -50,7 +52,9 @@ class Card():
       
       j = run_index + len(run_text)
 
-    for i in range(2, len(self.paragraphs)):
+    p_index = 2
+
+    for i in range(self.cite_i + 1, len(self.paragraphs)):
       p = self.paragraphs[i]
       runs = p.runs
       j = 0
@@ -62,14 +66,16 @@ class Card():
         if run_index == -1:
           continue
         if r.font.highlight_color is not None:
-          self.highlights.append((i, run_index, run_index + len(run_text)))
+          self.highlights.append((p_index, run_index, run_index + len(run_text)))
           self.highlighted_text += " " + run_text
         if UNDERLINE_NAME in r.style.name or r.font.underline or r.style.font.underline:
-          self.underlines.append((i, run_index, run_index + len(run_text)))
+          self.underlines.append((p_index, run_index, run_index + len(run_text)))
         if EMPHASIS_NAME in r.style.name:
-          self.emphasis.append((i, run_index, run_index + len(run_text)))
+          self.emphasis.append((p_index, run_index, run_index + len(run_text)))
         
         j = run_index + len(run_text)
+      
+      p_index += 1
   
   def get_index(self):
     index = {
@@ -87,6 +93,7 @@ class Card():
   def get_dynamo(self):
     db_representation = {
       "tag": {"S": self.tag},
+      "tag_sub": {"S": self.tag_sub},
       "cite": {"S": self.cite},
       "highlighted_text": {"S": self.highlighted_text},
       "body": {"L": [{"S":p} for p in self.body]},
