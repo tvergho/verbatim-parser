@@ -1,26 +1,26 @@
 import hashlib
 from date_test import generate_date_from_cite
-from docx.text.paragraph import Paragraph
+# from docx.text.paragraph import Paragraph
 import re
 
-Paragraph.text = property(lambda self: GetParagraphText(self))
+# Paragraph.text = property(lambda self: GetParagraphText(self))
 
-def GetParagraphText(paragraph):
-  def GetTag(element):
-      return "%s:%s" % (element.prefix, re.match("{.*}(.*)", element.tag).group(1))
+# def GetParagraphText(paragraph):
+#   def GetTag(element):
+#       return "%s:%s" % (element.prefix, re.match("{.*}(.*)", element.tag).group(1))
 
-  text = ''
-  runCount = 0
-  for child in paragraph._p:
-      tag = GetTag(child)
-      if tag == "w:r":
-          text += paragraph.runs[runCount].text
-          runCount += 1
-      if tag == "w:hyperlink":
-          for subChild in child:
-              if GetTag(subChild) == "w:r":
-                  text += subChild.text
-  return text
+#   text = ''
+#   runCount = 0
+#   for child in paragraph._p:
+#       tag = GetTag(child)
+#       if tag == "w:r":
+#           text += paragraph.runs[runCount].text
+#           runCount += 1
+#       if tag == "w:hyperlink":
+#           for subChild in child:
+#               if GetTag(subChild) == "w:r":
+#                   text += subChild.text
+#   return text
 
 TAG_NAME = "Heading 4"
 NORMAL_NAME = "Normal"
@@ -38,7 +38,7 @@ class Card():
     self.tag_sub = ""
     for i in range(1, len(paragraphs)):
       if not any(c.isdigit() for c in paragraphs[i].text):
-        self.tag_sub += paragraphs[i].text + " "
+        self.tag_sub += paragraphs[i].text + "\n"
       else:
         self.cite = paragraphs[i].text
         self.cite_i = i

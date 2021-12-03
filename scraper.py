@@ -23,9 +23,9 @@ search = Search()
 
 def parse_and_upload(folder, filename, additional_info):
   try:
-    # if search.check_filename_in_search(unquote(filename)):
-    #   print(f"{filename} already in search, skipping")
-    #   return
+    if search.check_filename_in_search(unquote(filename)):
+      print(f"{filename} already in search, skipping")
+      return
 
     parser = Parser(folder + filename, additional_info)
     cards = parser.parse()
@@ -110,8 +110,9 @@ class Scraper:
       return
 
     try:
-      await asyncio.gather(*[self.download_document(url) for url in links])
-      await asyncio.sleep(0.5)
+      for url in links:
+        await self.download_document(url)
+        await asyncio.sleep(0.5)
       print("Scraped " + url)
     except Exception as e:
       await asyncio.sleep(10)

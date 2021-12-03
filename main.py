@@ -7,7 +7,7 @@ import sys
 wiki_url = "https://opencaselist.paperlessdebate.com"
 tmp_folder = "./tmp/"
 
-pool = Pool(processes=8)
+pool = Pool(processes=4)
 
 async def process_downloaded_documents(url, division, year):
   scraper = Scraper(url, division, year, tmp_folder)
