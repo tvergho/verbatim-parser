@@ -85,6 +85,13 @@ class Search():
     to_process = self.unprocessed_cards[:25]
     self.unprocessed_cards = self.unprocessed_cards[25:]
 
+    # de-duplicate to avoid BatchWriteItem errors
+    acc = []
+    for item in to_process:
+      if not any(i['PutRequest']['Item']['id']['S'] == item['PutRequest']['Item']['id']['S'] for i in acc):
+        acc.append(item)
+    to_process = acc
+
     if len(to_process) > 0:
       response = self.db.batch_write_item(
         RequestItems={

@@ -43,7 +43,7 @@ class Api:
       "query": {
         "multi_match": {
           "query": q,
-          "fields": ["tag^4", "cite^2", "body"],
+          "fields": ["tag^4", "highlighted_text^3", "cite^2", "body"],
           "fuzziness" : "AUTO"
         }
       },

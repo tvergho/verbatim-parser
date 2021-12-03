@@ -41,7 +41,7 @@ if __name__ == "__main__":
   
   parser = Parser(docx_name, {"filename": docx_name})
   cards = parser.parse()
-  print([{i:v for i,v in card.get_dynamo().items() if "Causes global crises" in card.tag} for card in cards])
+  print([{i:v for i,v in card.get_dynamo().items() if "and revitalizes momentum" in card.tag} for card in cards])
 
   # search = Search()
   # search.upload_cards(cards)
