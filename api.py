@@ -30,13 +30,13 @@ class Api:
     )
     self.db = boto3.client('dynamodb', region_name=region, aws_access_key_id=os.environ['AWS_ACCESS_KEY_ID'], aws_secret_access_key=os.environ['AWS_SECRET_ACCESS_KEY'])
   
-  async def query(self, q, from_value=0, start_date="", end_date=""):
-    results = self.query_search(q, from_value, start_date, end_date)
+  async def query(self, q, from_value=0, start_date="", end_date="", exclude_sides=""):
+    results = self.query_search(q, from_value, start_date, end_date, exclude_sides)
     db_results = await asyncio.gather(*[self.get_by_id(result['_id']) for result in results])
     cursor = from_value + len(results)
     return ([result for result in db_results if result != None], cursor)
 
-  def query_search(self, q, from_value, start_date="", end_date=""):
+  def query_search(self, q, from_value, start_date="", end_date="", exclude_sides=""):
     query = {
       "size": results_per_page,
       "from": from_value,
@@ -65,6 +65,13 @@ class Api:
             }
           }
         ]
+    
+    if exclude_sides != "":
+      query["query"]["bool"]["must_not"] = [{
+          "match": {
+            "filename": exclude_sides
+          }
+        }]
 
     response = self.client.search(
       body=query,
@@ -107,9 +114,10 @@ def query():
   cursor = int(request.args.get('cursor', 0))
   start_date = request.args.get('start_date', '')
   end_date = request.args.get('end_date', '')
+  exclude_sides = request.args.get('exclude_sides', '')
 
   api = Api()
-  (results, cursor) = asyncio.run(api.query(search, cursor, start_date=start_date, end_date=end_date))
+  (results, cursor) = asyncio.run(api.query(search, cursor, start_date=start_date, end_date=end_date, exclude_sides=exclude_sides))
   return {"count": len(results), "results": results, "cursor": cursor}
 
 @app.route("/card", methods=['GET'])
