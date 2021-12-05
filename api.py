@@ -30,13 +30,13 @@ class Api:
     )
     self.db = boto3.client('dynamodb', region_name=region, aws_access_key_id=os.environ['AWS_ACCESS_KEY_ID'], aws_secret_access_key=os.environ['AWS_SECRET_ACCESS_KEY'])
   
-  async def query(self, q, from_value=0, start_date="", end_date="", exclude_sides=""):
-    results = self.query_search(q, from_value, start_date, end_date, exclude_sides)
+  async def query(self, q, from_value=0, start_date="", end_date="", exclude_sides="", exclude_division="", exclude_years="", exclude_schools="", sort_by=""):
+    results = self.query_search(q, from_value, start_date, end_date, exclude_sides, exclude_division, exclude_years, exclude_schools, sort_by)
     db_results = await asyncio.gather(*[self.get_by_id(result['_id']) for result in results])
     cursor = from_value + len(results)
     return ([result for result in db_results if result != None], cursor)
 
-  def query_search(self, q, from_value, start_date="", end_date="", exclude_sides=""):
+  def query_search(self, q, from_value, start_date="", end_date="", exclude_sides="", exclude_division="", exclude_years="", exclude_schools="", filter_by=""):
     query = {
       "size": results_per_page,
       "from": from_value,
@@ -45,7 +45,7 @@ class Api:
           "must": {
             "multi_match": {
               "query": q,
-              "fields": ["tag^4", "highlighted_text^3", "cite^2", "body"],
+              "fields": ["tag^4", "highlighted_text^3", "cite^3", "body"],
               "fuzziness" : "AUTO"
             }
           }
@@ -72,6 +72,34 @@ class Api:
             "filename": exclude_sides
           }
         }]
+    
+    if query["query"]["bool"].get("must_not") == None:
+        query["query"]["bool"]["must_not"] = []
+
+    if exclude_division != "":
+      query["query"]["bool"]["must_not"].append({
+          "match": {
+            "division": exclude_division
+          }
+        })
+
+    if exclude_schools != "":
+      schools = exclude_schools.split(",")
+      for school in schools:
+        query["query"]["bool"]["must_not"].append({
+            "match": {
+              "school": school
+            }
+          })
+    
+    if exclude_years != "":
+      years = exclude_years.split(",")
+      for year in years:
+        query["query"]["bool"]["must_not"].append({
+            "term": {
+              "year.keyword": year
+            }
+          })
 
     response = self.client.search(
       body=query,
@@ -115,9 +143,16 @@ def query():
   start_date = request.args.get('start_date', '')
   end_date = request.args.get('end_date', '')
   exclude_sides = request.args.get('exclude_sides', '')
+  exclude_division = request.args.get('exclude_division', '')
+  exclude_schools = request.args.get('exclude_schools', '')
+  exclude_years = request.args.get('exclude_years', '')
+  sort_by = request.args.get('sort_by', '')
 
   api = Api()
-  (results, cursor) = asyncio.run(api.query(search, cursor, start_date=start_date, end_date=end_date, exclude_sides=exclude_sides))
+  (results, cursor) = asyncio.run(api.query(search, cursor, 
+    start_date=start_date, end_date=end_date, exclude_sides=exclude_sides,
+    exclude_division=exclude_division, exclude_schools=exclude_schools, exclude_years=exclude_years, sort_by=sort_by
+  ))
   return {"count": len(results), "results": results, "cursor": cursor}
 
 @app.route("/card", methods=['GET'])
