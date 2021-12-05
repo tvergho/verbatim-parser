@@ -112,7 +112,6 @@ class Scraper:
     try:
       for url in links:
         await self.download_document(url)
-        await asyncio.sleep(0.5)
       print("Scraped " + url)
     except Exception as e:
       await asyncio.sleep(10)
@@ -133,6 +132,7 @@ class Scraper:
         if not chunk:
           break
         f.write(chunk)
+    await asyncio.sleep(0.5)
     return filename
   
   def upload_documents(self):

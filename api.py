@@ -46,7 +46,9 @@ class Api:
             "multi_match": {
               "query": q,
               "fields": ["tag^4", "highlighted_text^3", "cite^3", "body"],
-              "fuzziness" : "AUTO"
+              "fuzziness" : "AUTO",
+              "operator":   "and",
+              "analyzer": "syn_analyzer"
             }
           }
         }
@@ -108,6 +110,29 @@ class Api:
     
     return response['hits']['hits']
 
+  def get_colleges(self):
+    query = {
+      "size": 0,
+      "aggs": {
+        "schools": {
+          "terms": {
+            "field": "school.keyword",
+            "size": 50000000,
+            "order": {
+              "_term": "asc",
+            }
+          }
+        }
+      }
+    }
+    response = self.client.search(
+      body=query,
+      index=index_prefix + '-college*'
+    )
+    schools = response['aggregations']['schools']['buckets']
+    schools = [school['key'] for school in schools]
+    return schools
+
   async def get_by_id(self, id, preview=True):
     loop = asyncio.get_event_loop()
 
@@ -161,6 +186,12 @@ def get_card():
   api = Api()
   result = asyncio.run(api.get_by_id(card_id, False))
   return result
+
+@app.route("/schools", methods=['GET'])
+def get_schools_list():
+  api = Api()
+  schools = api.get_colleges()
+  return {"schools": schools}
 
 if __name__ == '__main__':
   if len(sys.argv) != 2:
