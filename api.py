@@ -41,7 +41,9 @@ class Api:
       "size": results_per_page,
       "from": from_value,
       "query": {
-        "bool": {}
+        "bool": {
+          "must": []
+        }
       },
       "_source": False
     }
@@ -58,18 +60,22 @@ class Api:
       }]
 
     if cite_match != "":
-      query['query']['bool']['should'] = [
-        {
-          "wildcard": {
-            "cite.keyword": "*" + cite_match + "*"
-          }
-        },
-        {
-          "wildcard": {
-            "cite": "*" + cite_match + "*"
-          }
+      query['query']['bool']['must'].append({
+        "bool": {
+          "should": [
+            {
+              "wildcard": {
+                "cite.keyword": "*" + cite_match + "*"
+              }
+            },
+            {
+              "wildcard": {
+                "cite": "*" + cite_match + "*"
+              }
+            }
+          ]
         }
-      ]
+      })
 
     if start_date != "" and end_date != "":
       query["query"]["bool"]["filter"] = [
