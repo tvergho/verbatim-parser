@@ -41,15 +41,13 @@ class Api:
       "size": results_per_page,
       "from": from_value,
       "query": {
-        "bool": {
-          "must": []
-        }
+        "bool": {}
       },
       "_source": False
     }
 
     if q != "":
-      query['query']['bool']['must'].append({
+      query['query']['bool']['must'] = [{
         "multi_match": {
           "query": q,
           "fields": ["tag^4", "highlighted_text^3", "cite^3", "body"],
@@ -57,14 +55,21 @@ class Api:
           "operator":   "and",
           "analyzer": "syn_analyzer"
         }
-      })
+      }]
 
     if cite_match != "":
-      query['query']['bool']['must'].append({
-        "wildcard": {
-          "cite.keyword": "*" + cite_match + "*"
+      query['query']['bool']['should'] = [
+        {
+          "wildcard": {
+            "cite.keyword": "*" + cite_match + "*"
+          }
+        },
+        {
+          "wildcard": {
+            "cite": "*" + cite_match + "*"
+          }
         }
-      })
+      ]
 
     if start_date != "" and end_date != "":
       query["query"]["bool"]["filter"] = [
