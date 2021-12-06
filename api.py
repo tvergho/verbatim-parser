@@ -30,31 +30,41 @@ class Api:
     )
     self.db = boto3.client('dynamodb', region_name=region, aws_access_key_id=os.environ['AWS_ACCESS_KEY_ID'], aws_secret_access_key=os.environ['AWS_SECRET_ACCESS_KEY'])
   
-  async def query(self, q, from_value=0, start_date="", end_date="", exclude_sides="", exclude_division="", exclude_years="", exclude_schools="", sort_by=""):
-    results = self.query_search(q, from_value, start_date, end_date, exclude_sides, exclude_division, exclude_years, exclude_schools, sort_by)
+  async def query(self, q, from_value=0, start_date="", end_date="", exclude_sides="", exclude_division="", exclude_years="", exclude_schools="", sort_by="", cite_match=""):
+    results = self.query_search(q, from_value, start_date, end_date, exclude_sides, exclude_division, exclude_years, exclude_schools, sort_by, cite_match)
     db_results = await asyncio.gather(*[self.get_by_id(result['_id']) for result in results])
     cursor = from_value + len(results)
     return ([result for result in db_results if result != None], cursor)
 
-  def query_search(self, q, from_value, start_date="", end_date="", exclude_sides="", exclude_division="", exclude_years="", exclude_schools="", filter_by=""):
+  def query_search(self, q, from_value, start_date="", end_date="", exclude_sides="", exclude_division="", exclude_years="", exclude_schools="", sort_by="", cite_match=""):
     query = {
       "size": results_per_page,
       "from": from_value,
       "query": {
         "bool": {
-          "must": {
-            "multi_match": {
-              "query": q,
-              "fields": ["tag^4", "highlighted_text^3", "cite^3", "body"],
-              "fuzziness" : "AUTO",
-              "operator":   "and",
-              "analyzer": "syn_analyzer"
-            }
-          }
+          "must": []
         }
       },
       "_source": False
     }
+
+    if q != "":
+      query['query']['bool']['must'].append({
+        "multi_match": {
+          "query": q,
+          "fields": ["tag^4", "highlighted_text^3", "cite^3", "body"],
+          "fuzziness" : "AUTO",
+          "operator":   "and",
+          "analyzer": "syn_analyzer"
+        }
+      })
+
+    if cite_match != "":
+      query['query']['bool']['must'].append({
+        "wildcard": {
+          "cite.keyword": "*" + cite_match + "*"
+        }
+      })
 
     if start_date != "" and end_date != "":
       query["query"]["bool"]["filter"] = [
@@ -172,11 +182,12 @@ def query():
   exclude_schools = request.args.get('exclude_schools', '')
   exclude_years = request.args.get('exclude_years', '')
   sort_by = request.args.get('sort_by', '')
+  cite_match = request.args.get('cite_match', '')
 
   api = Api()
   (results, cursor) = asyncio.run(api.query(search, cursor, 
     start_date=start_date, end_date=end_date, exclude_sides=exclude_sides,
-    exclude_division=exclude_division, exclude_schools=exclude_schools, exclude_years=exclude_years, sort_by=sort_by
+    exclude_division=exclude_division, exclude_schools=exclude_schools, exclude_years=exclude_years, sort_by=sort_by, cite_match=cite_match
   ))
   return {"count": len(results), "results": results, "cursor": cursor}
 
