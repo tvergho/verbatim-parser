@@ -80,8 +80,8 @@ class Api:
 
     if exclude_division != "":
       query["query"]["bool"]["must_not"].append({
-          "match": {
-            "division": exclude_division
+          "term": {
+            "division.keyword": exclude_division
           }
         })
 
@@ -89,8 +89,8 @@ class Api:
       schools = exclude_schools.split(",")
       for school in schools:
         query["query"]["bool"]["must_not"].append({
-            "match": {
-              "school": school
+            "term": {
+              "school.keyword": school
             }
           })
     
@@ -191,16 +191,7 @@ def get_card():
 def get_schools_list():
   api = Api()
   schools = api.get_colleges()
-  return {"schools": schools}
+  return {"colleges": schools}
 
 if __name__ == '__main__':
-  if len(sys.argv) != 2:
-    print("Usage: python3 api.py <query>")
-    sys.exit(1)
-
-  query = sys.argv[1]
-
-  api = Api()
-  response = api.query(query)
-
-  print(response)
+  app.run(port=os.environ['PORT'], host='0.0.0.0', debug=True)
