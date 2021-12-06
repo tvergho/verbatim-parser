@@ -1,0 +1,111 @@
+FRAND, fair reasonable and non-discriminatory
+disease, pandemic, diseases, pandemics
+AI, artificial intelligence
+OBOR, one belt one road, BRI, belt and road initiative
+FTC, federal trade commission
+SEC, securities and exchange commission
+DOJ, department of justice
+XO, executive order, XOs, executive orders
+BBB, build back better
+US, U.S., United States, America, American
+R&D, research and development, RandD
+antitrust, competition law
+LIO, liberal order, liberal international order, international order
+SCS, south china sea
+ECS, east china sea
+CNC, command and control, NC3
+DPT, democratic peace theory, democratic peace
+DCC, dormant commerce clause, commerce clause
+CCS, carbon capture, carbon capture and storage
+CCP, chinese communist party, communist party of china
+PRC, people's republic of china, china, chinese
+PLA, People's Liberation Army
+GAFA, google, apple, facebook, amazon, FAANG
+IR, international relations
+PC, polcap, political capital
+
+econ, economy, economies, economic
+dedev, dedevelopment, degrowth, de-dedevelopment
+warming, global warming, climate change
+extinction, existential
+war, conflict, wars, conflicts
+uncertain, uncertainty, ambiguity, ambiguous
+success, successful
+ag, agriculture, food
+empirics, empirical
+peace, peaceful
+heg, hegemony
+retal, retaliation
+immunize, immunizes, shield, shields, insulate, insulates
+increase, increasing, high
+decrease, decreasing, decline, declines, diminish, low
+growth, economic growth
+sustainable, sustained, sustainability, sustainably, long-term
+unsustainable, unsustainability, unsustainably
+judges, judge, justices, justice
+court, courts, judicial, judiciary
+constitution, constitutional
+legislation, law, laws, statutes
+legislative, congress, congressional
+doctrine, doctrinal, precedent, precedential
+president, commmander in chief, executive
+suit, suits, lawsuit, lawsuits, litigation
+innovation, innovate
+regulation, regulate, regulator
+multilat, multilateralism, institutions, institutionalism
+collusion, colluder, colluders, colluded
+tech, technology, technical, technological
+nano, nano-tech, nanotech
+crisis, crises
+prove, proves
+econ decline, economic decline, stagnation, slow growth, recession, depression
+democrat, democrats, dems, liberal, liberals
+republicans, conservative, conservatives, republican, gop
+perception, perceptual, perceptually, signal, signalling, signals
+covid, covid-19, coronavirus, delta
+narrow, limited, targeted
+broad, expansive, sweeping
+fail, fails, failure, impossible, impractical, unfeasible, infeasible
+possible, feasible
+likely, high risk, probable
+socialist, socialism, communist, communism
+cap, capitalism
+necessity, necessary
+inevitable, inevitability
+good, desirable
+grassroots, bottom-up, bottom up
+space col, space colonization
+tradeoff, trade off, trades off
+ontology, ontological
+epistemology, epistemological
+reps, representation, representations
+cred, credibility
+prolif, proliferation
+theory, theoretical
+anthropocentrism, anthropocentric, anthro
+scenario analysis, scenario planning
+util, utilitarianism
+
+uniqueness, uq
+internal link, i/l
+ev, evidence
+solve, solves, solvency
+CP, counterplan
+USFG, united states federal government
+laundry list, litany, slew, host
+no impact, doesn't cause extinction, not existential
+alt, alternative
+solve extinction, solves extinction, solve conflict, stop extinction, stops extinction, prevent extinction, prevent conflict, prevents extinction
+thump, thumps, thumper, thumpers
+con-con, con con, constitutional convention
+
+1, one, first, 1st
+2, two, second, 2nd
+3, three, third, 3rd
+4, four, fourth, 4th
+5, five, fifth, 5th
+6, six, sixth, 6th
+7, seven, seventh, 7th
+8, eight, eighth, 8th
+9, nine, ninth, 9th
+10, ten, tenth, 10th

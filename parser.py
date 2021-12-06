@@ -1,5 +1,6 @@
 import sys
 import os
+import traceback
 from docx import Document
 from card import TAG_NAME, Card
 from search import Search
@@ -13,12 +14,13 @@ class Parser():
 
   def parse(self):
     current_card = []
-
+    print("Parsing " + self.filename)
+    
     for paragraph in self.document.paragraphs:
       if paragraph.style.name == TAG_NAME:
         try:
           self.cards.append(Card(current_card, self.additional_info))
-        except:
+        except Exception as e:
           continue
         finally:
           current_card = [paragraph]
@@ -37,8 +39,10 @@ if __name__ == "__main__":
     print("File not found")
     sys.exit(1)
   
-  parser = Parser(docx_name)
+  parser = Parser(docx_name, {"filename": docx_name})
   cards = parser.parse()
+  print([{i:v for i,v in card.get_dynamo().items() if i != "body"} for card in cards])
 
-  search = Search()
-  search.upload_cards(cards)
+  # search = Search()
+  # search.upload_cards(cards)
+  # search.upload_to_dynamo(cards)
