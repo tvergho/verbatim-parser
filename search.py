@@ -7,7 +7,7 @@ import json
 
 load_dotenv()
 
-host = 'search-logos-test-liwqw3bnlb3qyn3kvfhxyqkldi.us-west-1.es.amazonaws.com' # For example, my-test-domain.us-east-1.es.amazonaws.com
+host = os.environ['AWS_OPENSEARCH_HOST']
 region = 'us-west-1'
 table_name = 'logos-debate'
 bucket_name = "logos-debate"
