@@ -49,15 +49,31 @@ class Api:
     }
 
     if q != "":
-      query['query']['bool']['must'] = [{
-        "multi_match": {
-          "query": q,
-          "fields": ["tag^4", "highlighted_text^3", "cite^3", "body"],
-          "fuzziness" : "AUTO",
-          "operator":   "and",
-          "analyzer": "syn_analyzer"
-        }
-      }]
+        q_parts = q.split('\"')
+
+        for part in [part for [i, part] in enumerate(q_parts) if i % 2 == 0]:
+          if len(part.strip()) > 0:
+            query['query']['bool']['must'] = [{
+              "multi_match": {
+                "query": part.strip(),
+                "fields": ["tag^4", "highlighted_text^3", "cite^3", "body"],
+                "fuzziness" : "AUTO",
+                "operator":   "and",
+                "analyzer": "syn_analyzer",
+                "type": "best_fields",
+                "cutoff_frequency": 0.001
+              }
+            }]
+        for part in [part for [i, part] in enumerate(q_parts) if i % 2 == 1]:
+          if len(part.strip()) > 0:
+            query['query']['bool']['must'].append({
+              "multi_match": {
+                "query": part,
+                "type": "phrase",
+                "fields": ["tag^4", "highlighted_text^3", "cite^3", "body"],
+                "operator": "and"
+              }
+            })
 
     if cite_match != "":
       query['query']['bool']['must'].append({
