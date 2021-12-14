@@ -11,7 +11,7 @@ host = os.environ['AWS_OPENSEARCH_HOST']
 region = 'us-west-1'
 table_name = 'logos-debate'
 bucket_name = "logos-debate"
-index_prefix = "cards2"
+index_prefix = "cards3"
 
 service = 'es'
 credentials = boto3.Session(aws_access_key_id=os.environ['AWS_ACCESS_KEY_ID'], aws_secret_access_key=os.environ['AWS_SECRET_ACCESS_KEY']).get_credentials()

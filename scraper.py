@@ -53,15 +53,24 @@ class Scraper:
     self.main_soup = BeautifulSoup(contents, "html.parser")
     schools_pane = self.main_soup.find("div", class_="PanelsSchools")
 
-    self.schools = list(filter(lambda el : el.name == "a", map(lambda el : el.contents[0], schools_pane.find_all("span", class_="wikilink"))))
-    self.schools = list(map(lambda el : {"name": el.get_text(), "href": el.attrs["href"]}, self.schools))
+    self.schools = []
+    if schools_pane:
+      self.schools = list(filter(lambda el : el.name == "a", map(lambda el : el.contents[0], schools_pane.find_all("span", class_="wikilink"))))
+      self.schools = list(map(lambda el : {"name": el.get_text(), "href": el.attrs["href"]}, self.schools))
 
     self.download_urls = {}
     self.session = aiohttp.ClientSession()
 
   async def scrape(self):
-    for school in self.schools:
-      await self.scrape_school(school)
+    if len(self.schools) > 0:
+      for school in self.schools:
+        await self.scrape_school(school)
+    else:
+      links = set(filter(lambda href : "docx" in href, map(lambda el : el.contents[0].attrs["href"], self.main_soup.find_all("span", class_="wikiexternallink"))))
+      for url in links:
+        await self.download_document(url)
+        print("Scraped " + url)
+
     f = open(self.folder + download_doc, "w")
     json.dump(self.download_urls, f)
     f.close()
@@ -139,6 +148,9 @@ class Scraper:
     return [self.upload_document(filename) for filename in listdir(self.folder) if filename.endswith(".docx")]
   
   def get_school_name(self, filename):
+    if len(self.schools) == 0:
+      return ""
+
     school = ""
     for part in unquote(filename).split("-"):
       if part.lower() in ["aff", "neg"]: return ""
@@ -161,7 +173,7 @@ class Scraper:
    
   def upload_document(self, filename):
     school_name = self.get_school_name(filename)
-    team_name = self.get_team_name(filename, school_name)
+    team_name = self.get_team_name(filename, school_name) if len(school_name) > 0 else ""
     download_url = self.download_urls.get(filename)
 
     try:
