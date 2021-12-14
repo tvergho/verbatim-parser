@@ -116,11 +116,13 @@ class Api:
         query["query"]["bool"]["must_not"] = []
 
     if exclude_division != "":
-      query["query"]["bool"]["must_not"].append({
-          "term": {
-            "division.keyword": exclude_division
-          }
-        })
+      divisions = exclude_division.split(",")
+      for division in divisions:
+        query["query"]["bool"]["must_not"].append({
+            "match_phrase_prefix": {
+              "division": division.split('-')[0]
+            }
+          })
 
     if exclude_schools != "":
       schools = exclude_schools.split(",")
@@ -139,7 +141,7 @@ class Api:
               "year.keyword": year
             }
           })
-
+    print(query)
     response = self.client.search(
       body=query,
       index=index_prefix + '*'
