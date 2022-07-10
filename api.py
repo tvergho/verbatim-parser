@@ -5,9 +5,11 @@ from dynamodb_json import json_util as json
 from flask import Flask, request
 from flask_cors import CORS
 from dotenv import load_dotenv
+from dropbox_client import DropboxClient 
 import boto3
 import os
 import sys
+import traceback
 import asyncio
 
 load_dotenv()
@@ -18,7 +20,6 @@ app = Flask(__name__)
 CORS(app)
 
 results_per_page = 20
-
 class Api:
   def __init__(self):
     self.client = OpenSearch(
@@ -29,7 +30,7 @@ class Api:
       connection_class = RequestsHttpConnection
     )
     self.db = boto3.client('dynamodb', region_name=region, aws_access_key_id=os.environ['AWS_ACCESS_KEY_ID'], aws_secret_access_key=os.environ['AWS_SECRET_ACCESS_KEY'])
-  
+
   async def query(self, q, from_value=0, start_date="", end_date="", exclude_sides="", exclude_division="", exclude_years="", exclude_schools="", sort_by="", cite_match=""):
     results = self.query_search(q, from_value, start_date, end_date, exclude_sides, exclude_division, exclude_years, exclude_schools, sort_by, cite_match)
     db_results = await asyncio.gather(*[self.get_by_id(result['_id']) for result in results])
@@ -199,6 +200,22 @@ class Api:
 
     item = json.loads(response['Item'])
     return item
+  
+  def create_or_update_user(self, account_id, user):
+    user = {
+      'account_id': { 'S': account_id },
+      'email': { 'S': user.get('email', '') },
+      'display_name': { 'S': user['name'].get('display_name') },
+      'first_name': { 'S': user['name'].get('familiar_name') },
+      'last_name': { 'S': user['name'].get('surname') },
+      'profile_photo_url': { 'S': user.get('profile_photo_url') },
+      'country': { 'S': user.get('country') },
+    }
+
+    self.db.put_item(
+      TableName="logos-users",
+      Item=user
+    )
 
 @app.route("/query", methods=['GET'])
 def query():
@@ -232,6 +249,29 @@ def get_schools_list():
   api = Api()
   schools = api.get_colleges()
   return {"colleges": schools}
+
+@app.route("/create-user", methods=['POST'])
+def create_user():
+  try:
+    access_token = request.headers.get('Authorization')
+
+    if access_token == None:
+      return { 'error': 'No access token provided' }, 401
+    if request.json == None or request.json.get('refresh_token') == None:
+      return { 'error': 'No refresh token provided' }, 400
+
+    refresh_token = request.json['refresh_token']
+
+    print(access_token)
+    dropbox = DropboxClient(access_token)
+    api = Api()
+
+    account_info = dropbox.get_user_info()
+    api.create_or_update_user(account_info['account_id'], account_info)
+    return account_info
+  except Exception as e:
+    traceback.print_exc()
+    return {"error": str(e)}, 400
 
 if __name__ == '__main__':
   app.run(port=os.environ['PORT'], host='0.0.0.0', debug=True)
