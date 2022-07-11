@@ -1,5 +1,6 @@
 import requests
 import os
+import json
 
 api_url = "https://api.dropbox.com"
 
@@ -21,5 +22,26 @@ class DropboxClient:
       'path': '',
       'recursive': True
     })
-    print(response.content)
-    return response.json()
+    data = response.json()
+    entries = data['entries']
+
+    while data['has_more'] == True:
+      response = requests.post(f'{api_url}/2/files/list_folder/continue', headers=self.headers, json={
+        'cursor': data['cursor']
+      })
+      data = response.json()
+      entries += data['entries']
+
+    return entries
+  
+  def process_files(self, files):
+    for file in files:
+      path = file['id']
+      response = requests.post('https://content.dropboxapi.com/2/files/download', headers={
+        **self.headers,
+        'Dropbox-API-Arg': json.dumps({ "path": path })
+      })
+
+      with open(f'/tmp/{file["content_hash"]}.docx', 'wb') as f:
+        for chunk in response.iter_content(1024 * 1024 * 2):
+          f.write(chunk)
