@@ -25,8 +25,6 @@ app = Flask(__name__)
 CORS(app)
 
 results_per_page = 20
-
-loop = asyncio.get_event_loop()
 class Api:
   def __init__(self):
     self.client = OpenSearch(
@@ -38,13 +36,13 @@ class Api:
     )
     self.db = boto3.client('dynamodb', region_name=region, aws_access_key_id=os.environ['AWS_ACCESS_KEY_ID'], aws_secret_access_key=os.environ['AWS_SECRET_ACCESS_KEY'])
 
-  async def query(self, q, from_value=0, start_date="", end_date="", exclude_sides="", exclude_division="", exclude_years="", exclude_schools="", sort_by="", cite_match=""):
-    results = self.query_search(q, from_value, start_date, end_date, exclude_sides, exclude_division, exclude_years, exclude_schools, sort_by, cite_match)
+  async def query(self, q, from_value=0, start_date="", end_date="", exclude_sides="", exclude_division="", exclude_years="", exclude_schools="", sort_by="", cite_match="", account_id=None):
+    results = self.query_search(q, from_value, start_date, end_date, exclude_sides, exclude_division, exclude_years, exclude_schools, sort_by, cite_match, account_id)
     db_results = await asyncio.gather(*[self.get_by_id(result['_id']) for result in results])
     cursor = from_value + len(results)
     return ([result for result in db_results if result != None], cursor)
 
-  def query_search(self, q, from_value, start_date="", end_date="", exclude_sides="", exclude_division="", exclude_years="", exclude_schools="", sort_by="", cite_match=""):
+  def query_search(self, q, from_value, start_date="", end_date="", exclude_sides="", exclude_division="", exclude_years="", exclude_schools="", sort_by="", cite_match="", account_id=None):
     query = {
       "size": results_per_page,
       "from": from_value,
@@ -149,10 +147,30 @@ class Api:
               "year.keyword": year
             }
           })
+      
+    
+    if account_id != None:
+      query["query"]["bool"]["must"].append({
+          "bool": {
+            "must": [
+              {
+                "match": {
+                  "team": account_id
+                }
+              }
+            ],
+            "filter": {
+              "term": {
+                "_index": "personal"
+              }
+            }
+          }
+        })
+
     print(query)
     response = self.client.search(
       body=query,
-      index=index_prefix + '*'
+      index=index_prefix + '*' + (',personal' if account_id is not None else '')
     )
     
     return response['hits']['hits']
@@ -181,6 +199,8 @@ class Api:
     return schools
 
   async def get_by_id(self, id, preview=True):
+    loop = asyncio.get_event_loop()
+
     def get_item():
       kwargs = {
         'TableName': table_name,
@@ -249,8 +269,28 @@ class Api:
     
     return refreshed_token.json()['access_token']
 
+def check_auth(token):
+  try:
+    dropbox = DropboxClient(token)
+    account_info = dropbox.get_user_info()
+    print(account_info)
+    return account_info
+  except Exception as e:
+    print(e)
+    traceback.format_exc()
+    return False
+
 @app.route("/query", methods=['GET'])
 def query():
+  access_token = request.args.get('access_token')
+  account_id = None
+
+  if access_token != None:
+    info = check_auth(access_token)
+    if info == False:
+      return { 'error': 'Invalid access token' }, 401
+    account_id = info['account_id'].split(':')[1]
+
   search = request.args.get('search')
   cursor = int(request.args.get('cursor', 0))
   start_date = request.args.get('start_date', '')
@@ -265,7 +305,8 @@ def query():
   api = Api()
   (results, cursor) = asyncio.run(api.query(search, cursor, 
     start_date=start_date, end_date=end_date, exclude_sides=exclude_sides,
-    exclude_division=exclude_division, exclude_schools=exclude_schools, exclude_years=exclude_years, sort_by=sort_by, cite_match=cite_match
+    exclude_division=exclude_division, exclude_schools=exclude_schools, exclude_years=exclude_years, sort_by=sort_by, cite_match=cite_match,
+    account_id=account_id
   ))
   return {"count": len(results), "results": results, "cursor": cursor}
 
@@ -281,14 +322,6 @@ def get_schools_list():
   api = Api()
   schools = api.get_colleges()
   return {"colleges": schools}
-
-def check_auth(token):
-  try:
-    dropbox = DropboxClient(access_token)
-    account_info = dropbox.get_user_info()
-    return True
-  except:
-    return False
 
 @app.route("/create-user", methods=['POST'])
 def create_user():
