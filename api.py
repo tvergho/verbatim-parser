@@ -317,6 +317,8 @@ def process_user(account_id):
   api = Api()
   access_token = api.get_access_token_for_user(account_id)
   print(access_token)
+  dropbox = DropboxClient(access_token)
+  print(dropbox.get_all_files())
 
 @app.route('/webhook', methods=['POST'])
 def verify():

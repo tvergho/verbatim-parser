@@ -15,3 +15,11 @@ class DropboxClient:
   def get_user_info(self):
     response = requests.post(f'{api_url}/2/users/get_current_account', headers=self.headers, json=None)
     return response.json()
+  
+  def get_all_files(self):
+    response = requests.post(f'{api_url}/2/files/list_folder', headers=self.headers, json={
+      'path': '',
+      'recursive': True
+    })
+    print(response.content)
+    return response.json()
