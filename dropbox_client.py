@@ -46,12 +46,19 @@ class DropboxClient:
   
 
   async def process_file(self, dropbox_file, account_id):
+    trunc_account_id = account_id.split(':')[1]
+
     path = dropbox_file['id']
-    filename = dropbox_file['name']
+    name = dropbox_file['name']
+    filename = f"{trunc_account_id}/{name}"
     path_lower = dropbox_file['path_lower']
 
     if path_lower.split('.')[len(path_lower.split('.')) - 1] != 'docx':
       return
+    
+    if search.check_filename_in_search(filename, opt_prefix="personal"):
+        print(f"{filename} already in search, skipping")
+        return
 
     response = requests.post('https://content.dropboxapi.com/2/files/download', headers={
       **self.headers,
@@ -60,7 +67,6 @@ class DropboxClient:
 
     tmp_name = f'{dropbox_file["content_hash"]}.docx'
     tmp_path = f'/tmp/{tmp_name}'
-    trunc_account_id = account_id.split(':')[1]
 
     print(f'processing {tmp_path}')
 
@@ -68,7 +74,7 @@ class DropboxClient:
       for chunk in response.iter_content(1024 * 1024 * 2):
         f.write(chunk)
 
-    s3_response = self.s3.upload_file(tmp_path, bucket, f"{trunc_account_id}/{filename}", ExtraArgs={'ACL':'public-read'})
+    s3_response = self.s3.upload_file(tmp_path, bucket, filename, ExtraArgs={'ACL':'public-read'})
 
     additional_info = {
       "filename": filename,
@@ -76,12 +82,12 @@ class DropboxClient:
       "team": trunc_account_id,
       "division": "personal",
       "year": "",
-      "download_url": f"{s3_url}/{trunc_account_id}/{filename}"
+      "download_url": f"{s3_url}/{filename}"
     }
     parser = Parser(tmp_path, additional_info)
     cards = parser.parse()
 
-    search.upload_cards(cards, opt_prefix=f"personal")
+    search.upload_cards(cards, opt_prefix="personal")
     search.upload_to_dynamo(cards)
 
     print(f'processed {filename}')
