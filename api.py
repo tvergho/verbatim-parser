@@ -25,6 +25,8 @@ app = Flask(__name__)
 CORS(app)
 
 results_per_page = 20
+
+loop = asyncio.get_event_loop()
 class Api:
   def __init__(self):
     self.client = OpenSearch(
@@ -179,8 +181,6 @@ class Api:
     return schools
 
   async def get_by_id(self, id, preview=True):
-    loop = asyncio.get_event_loop()
-
     def get_item():
       kwargs = {
         'TableName': table_name,
@@ -319,7 +319,7 @@ def process_user(account_id):
   print(access_token)
   dropbox = DropboxClient(access_token)
   files = dropbox.get_all_files()
-  dropbox.process_files(files)
+  loop.run_until_complete(dropbox.process_files(files, account_id))
 
 @app.route('/webhook', methods=['POST'])
 def verify():
@@ -332,7 +332,7 @@ def verify():
 
     if request.json.get('list_folder') == None or request.json['list_folder'].get('accounts') == None:
       return "empty accounts"
-
+    
     for account in request.json['list_folder']['accounts']:
       threading.Thread(target=process_user, args=(account,)).start()
     

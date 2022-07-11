@@ -10,7 +10,6 @@ load_dotenv()
 host = os.environ['AWS_OPENSEARCH_HOST']
 region = 'us-west-1'
 table_name = 'logos-debate'
-bucket_name = "logos-debate"
 index_prefix = "cards2"
 
 service = 'es'
@@ -28,8 +27,10 @@ class Search():
     self.db = boto3.client('dynamodb', region_name=region, aws_access_key_id=os.environ['AWS_ACCESS_KEY_ID'], aws_secret_access_key=os.environ['AWS_SECRET_ACCESS_KEY'])
     self.unprocessed_cards = []
 
-  def check_filename_in_search(self, filename):
-    response = self.search.search(index=f"{index_prefix}-*", body={
+  def check_filename_in_search(self, filename, opt_prefix=None):
+    index = f"{index_prefix}-*" if opt_prefix is None else opt_prefix
+
+    response = self.search.search(index=index, body={
       "query": {
         "term": {
           "filename.keyword": filename
@@ -53,7 +54,7 @@ class Search():
     )
     return 'Item' in response and 'download_url' in response['Item']
 
-  def upload_cards(self, cards, force_upload=False):
+  def upload_cards(self, cards, force_upload=False, opt_prefix=None):
     card_objects = list(map(lambda card: card.get_index(), cards))
 
     if len(card_objects) == 0:
@@ -61,14 +62,15 @@ class Search():
 
     if card_objects[0].get("filename") is not None and not force_upload:
       filename = card_objects[0].get("filename")
-      if self.check_filename_in_search(filename):
+      if self.check_filename_in_search(filename, opt_prefix=opt_prefix):
         print(f"{filename} already in search, skipping")
         return
 
     bulk_file = ""
     for card in card_objects:
       bulk_file += ('{ "index" : { "_index" : "') + \
-        (f"{index_prefix}-{card['division']}-{card['year']}" if card.get("division") is not None else index_prefix) + \
+        (opt_prefix if opt_prefix is not None else 
+          (f"{index_prefix}-{card['division']}-{card['year']}" if card.get("division") is not None else index_prefix)) + \
         ('", "_type" : "_doc", "_id" : "' + str(card["id"]) + '" } }\n')
 
       bulk_file += json.dumps({i:card[i] for i in card if i != 'id'}) + '\n'
