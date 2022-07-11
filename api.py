@@ -1,16 +1,21 @@
 from search import host, region, service, index_prefix, table_name
 from opensearchpy import OpenSearch, RequestsHttpConnection
 from requests_aws4auth import AWS4Auth
+from requests.auth import HTTPBasicAuth
 from dynamodb_json import json_util as json
-from flask import Flask, request
+from flask import Flask, request, Response
 from flask_cors import CORS
 from dotenv import load_dotenv
-from dropbox_client import DropboxClient 
+from hashlib import sha256
+from dropbox_client import DropboxClient, api_url
 import boto3
 import os
+import hmac
 import sys
 import traceback
 import asyncio
+import requests
+import threading
 
 load_dotenv()
 
@@ -201,7 +206,7 @@ class Api:
     item = json.loads(response['Item'])
     return item
   
-  def create_or_update_user(self, account_id, user):
+  def create_or_update_user(self, account_id, user, refresh_token):
     user = {
       'account_id': { 'S': account_id },
       'email': { 'S': user.get('email', '') },
@@ -210,12 +215,39 @@ class Api:
       'last_name': { 'S': user['name'].get('surname') },
       'profile_photo_url': { 'S': user.get('profile_photo_url') },
       'country': { 'S': user.get('country') },
+      'refresh_token': { 'S': refresh_token }
     }
 
     self.db.put_item(
       TableName="logos-users",
       Item=user
     )
+  
+  def get_access_token_for_user(self, account_id):
+    kwargs = {
+      'TableName': "logos-users",
+      'Key': {
+        'account_id': {
+          'S': account_id
+        }
+      },
+      'ReturnConsumedCapacity': 'NONE'
+    }
+    response = self.db.get_item(**kwargs)
+
+    if response.get('Item') == None:
+      return None
+    refresh_token = response['Item']['refresh_token']['S']
+
+    refreshed_token = requests.post('https://api.dropboxapi.com/oauth2/token', headers={ 'content-type': 'application/x-www-form-urlencoded' }, data={
+      'refresh_token': refresh_token,
+      'grant_type': 'refresh_token'
+    }, auth=HTTPBasicAuth(os.environ.get('DROPBOX_CLIENT_ID'), os.environ.get('DROPBOX_CLIENT_SECRET')))
+
+    if refreshed_token.status_code != 200:
+      return None
+    
+    return refreshed_token.json()['access_token']
 
 @app.route("/query", methods=['GET'])
 def query():
@@ -250,6 +282,14 @@ def get_schools_list():
   schools = api.get_colleges()
   return {"colleges": schools}
 
+def check_auth(token):
+  try:
+    dropbox = DropboxClient(access_token)
+    account_info = dropbox.get_user_info()
+    return True
+  except:
+    return False
+
 @app.route("/create-user", methods=['POST'])
 def create_user():
   try:
@@ -267,10 +307,36 @@ def create_user():
     api = Api()
 
     account_info = dropbox.get_user_info()
-    api.create_or_update_user(account_info['account_id'], account_info)
+    api.create_or_update_user(account_info['account_id'], account_info, refresh_token)
     return account_info
   except Exception as e:
     traceback.print_exc()
+    return {"error": str(e)}, 400
+
+def process_user(account_id):
+  api = Api()
+  access_token = api.get_access_token_for_user(account_id)
+  print(access_token)
+
+@app.route('/webhook', methods=['POST'])
+def verify():
+  try:
+    signature = request.headers.get('X-Dropbox-Signature')
+    key = bytes(os.environ['DROPBOX_CLIENT_SECRET'], encoding="ascii")
+    computed_signature = hmac.new(key, request.data, sha256).hexdigest()
+    if not hmac.compare_digest(signature, computed_signature):
+      abort(403)
+
+    if request.json.get('list_folder') == None or request.json['list_folder'].get('accounts') == None:
+      return "empty accounts"
+
+    for account in request.json['list_folder']['accounts']:
+      threading.Thread(target=process_user, args=(account,)).start()
+    
+    return 'OK'
+  except Exception as e:
+    traceback.print_exc()
+    print(e)
     return {"error": str(e)}, 400
 
 if __name__ == '__main__':
