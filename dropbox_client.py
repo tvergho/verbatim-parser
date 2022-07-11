@@ -81,7 +81,7 @@ class DropboxClient:
     parser = Parser(tmp_path, additional_info)
     cards = parser.parse()
 
-    search.upload_cards(cards, opt_prefix=f"cards2-personal")
+    search.upload_cards(cards, opt_prefix=f"personal")
     search.upload_to_dynamo(cards)
 
     print(f'processed {filename}')
