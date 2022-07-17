@@ -7,8 +7,8 @@ from flask import Flask, request, Response
 from flask_cors import CORS
 from dotenv import load_dotenv
 from hashlib import sha256
-from rq import Queue
-from worker import conn
+from worker import registry, conn
+from rq.job import Job
 from memory_profiler import memory_usage, profile
 
 from dropbox_client import DropboxClient, api_url
@@ -29,7 +29,6 @@ app = Flask(__name__)
 CORS(app)
 
 results_per_page = 20
-q = Queue(connection=conn)
 class Api:
   def __init__(self):
     self.client = OpenSearch(
@@ -339,6 +338,13 @@ def create_user():
     traceback.print_exc()
     return {"error": str(e)}, 400
 
+def cancel_user_jobs(account_id):
+  running_job_ids = registry.get_job_ids()
+  user_jobs = [job for job in running_job_ids if job.startswith(account_id)]
+  for job_id in user_jobs:
+    job = Job.fetch(job_id, connection=conn)
+    job.cancel()
+
 # @profile
 def process_user(account_id):
   print(account_id)
@@ -347,6 +353,7 @@ def process_user(account_id):
   print(access_token)
   dropbox = DropboxClient(access_token)
   files = dropbox.get_all_files()
+  cancel_user_jobs(account_id)
   dropbox.process_files(files, account_id)
 
 @app.route('/webhook', methods=['GET', 'POST'])

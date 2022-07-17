@@ -102,5 +102,5 @@ class DropboxClient:
   # @profile
   def process_files(self, files, account_id):
     for dropbox_file in files:
-      q.enqueue(self.process_file, dropbox_file, account_id)
+      q.enqueue(self.process_file, dropbox_file, account_id, job_id=f"{account_id}-{dropbox_file['content_hash']}")
       
