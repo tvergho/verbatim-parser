@@ -6,12 +6,19 @@ import boto3
 
 from parser import Parser
 from search import region, Search
+from memory_profiler import memory_usage, profile
+from rq import Queue
+from worker import conn
 
 api_url = "https://api.dropbox.com"
 s3_url = "https://logos-debate-2.s3.us-west-1.amazonaws.com"
 bucket = "logos-debate-2"
 
 search = Search()
+s3 = boto3.client('s3', region_name=region, aws_access_key_id=os.environ['AWS_ACCESS_KEY_ID'], aws_secret_access_key=os.environ['AWS_SECRET_ACCESS_KEY'])
+
+q = Queue(connection=conn)
+
 class DropboxClient:
   def __init__(self, access_token):
     self.client_id = os.environ.get('DROPBOX_CLIENT_ID')
@@ -20,7 +27,6 @@ class DropboxClient:
     self.headers = {
       "Authorization": self.access_token,
     }
-    self.s3 = boto3.client('s3', region_name=region, aws_access_key_id=os.environ['AWS_ACCESS_KEY_ID'], aws_secret_access_key=os.environ['AWS_SECRET_ACCESS_KEY'])
 
 
   def get_user_info(self):
@@ -44,20 +50,20 @@ class DropboxClient:
 
     return entries
   
-
-  async def process_file(self, dropbox_file, account_id):
+  # @profile
+  def process_file(self, dropbox_file, account_id):
     trunc_account_id = account_id.split(':')[1]
 
     path = dropbox_file['id']
     name = dropbox_file['name']
-    filename = f"{trunc_account_id}/{name}"
+    filename = f"{trunc_account_id}/{dropbox_file['content_hash']}/{name}"
     path_lower = dropbox_file['path_lower']
 
     if path_lower.split('.')[len(path_lower.split('.')) - 1] != 'docx':
       return
     
     if search.check_filename_in_search(filename, opt_prefix="personal"):
-        print(f"{filename} already in search, skipping")
+        print(f"{name} already in search, skipping")
         return
 
     response = requests.post('https://content.dropboxapi.com/2/files/download', headers={
@@ -68,13 +74,13 @@ class DropboxClient:
     tmp_name = f'{dropbox_file["content_hash"]}.docx'
     tmp_path = f'/tmp/{tmp_name}'
 
-    print(f'processing {tmp_path}')
+    print(f'processing {tmp_path}, {name}')
 
     with open(tmp_path, 'wb') as f:
       for chunk in response.iter_content(1024 * 1024 * 2):
         f.write(chunk)
 
-    s3_response = self.s3.upload_file(tmp_path, bucket, filename, ExtraArgs={'ACL':'public-read'})
+    s3_response = s3.upload_file(tmp_path, bucket, filename, ExtraArgs={'ACL':'public-read'})
 
     additional_info = {
       "filename": filename,
@@ -93,6 +99,8 @@ class DropboxClient:
     print(f'processed {filename}')
     os.remove(tmp_path)
 
-  async def process_files(self, files, account_id):
-    await asyncio.gather(*[self.process_file(dropbox_file, account_id) for dropbox_file in files])
+  # @profile
+  def process_files(self, files, account_id):
+    for dropbox_file in files:
+      q.enqueue(self.process_file, dropbox_file, account_id)
       

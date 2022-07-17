@@ -7,6 +7,10 @@ from flask import Flask, request, Response
 from flask_cors import CORS
 from dotenv import load_dotenv
 from hashlib import sha256
+from rq import Queue
+from worker import conn
+from memory_profiler import memory_usage, profile
+
 from dropbox_client import DropboxClient, api_url
 import boto3
 import os
@@ -25,6 +29,7 @@ app = Flask(__name__)
 CORS(app)
 
 results_per_page = 20
+q = Queue(connection=conn)
 class Api:
   def __init__(self):
     self.client = OpenSearch(
@@ -150,22 +155,10 @@ class Api:
       
     
     if account_id != None:
-      query["query"]["bool"]["must"].append({
-          "bool": {
-            "must": [
-              {
-                "match": {
-                  "team": account_id
-                }
-              }
-            ],
-            "filter": {
-              "term": {
-                "_index": "personal"
-              }
-            }
-          }
-        })
+      query["query"]["bool"]["should"] = [
+        { "match": { "team": account_id } },
+        { "term": { "_index": "cards*" }  }
+      ]
 
     print(query)
     response = self.client.search(
@@ -287,7 +280,7 @@ def query():
 
   if access_token != None:
     info = check_auth(access_token)
-    if info == False:
+    if info == False or info.get('account_id') == None:
       return { 'error': 'Invalid access token' }, 401
     account_id = info['account_id'].split(':')[1]
 
@@ -346,16 +339,25 @@ def create_user():
     traceback.print_exc()
     return {"error": str(e)}, 400
 
+# @profile
 def process_user(account_id):
+  print(account_id)
   api = Api()
   access_token = api.get_access_token_for_user(account_id)
   print(access_token)
   dropbox = DropboxClient(access_token)
   files = dropbox.get_all_files()
-  loop.run_until_complete(dropbox.process_files(files, account_id))
+  dropbox.process_files(files, account_id)
 
-@app.route('/webhook', methods=['POST'])
+@app.route('/webhook', methods=['GET', 'POST'])
 def verify():
+  if request.method == 'GET':
+    resp = Response(request.args.get('challenge'))
+    resp.headers['Content-Type'] = 'text/plain'
+    resp.headers['X-Content-Type-Options'] = 'nosniff'
+
+    return resp
+
   try:
     signature = request.headers.get('X-Dropbox-Signature')
     key = bytes(os.environ['DROPBOX_CLIENT_SECRET'], encoding="ascii")
@@ -367,7 +369,7 @@ def verify():
       return "empty accounts"
     
     for account in request.json['list_folder']['accounts']:
-      threading.Thread(target=process_user, args=(account,)).start()
+      process_user(account)
     
     return 'OK'
   except Exception as e:
@@ -377,3 +379,4 @@ def verify():
 
 if __name__ == '__main__':
   app.run(port=os.environ['PORT'], host='0.0.0.0', debug=True)
+  # process_user("dbid:AACbx3W911OAtsCU17tOQwSrOMqIWVzBBiQ")

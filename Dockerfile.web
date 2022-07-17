@@ -1,4 +1,4 @@
-FROM python:3.8-slim
+FROM --platform=linux/amd64 python:3.8-slim
 
 WORKDIR /app
 RUN python3 -m venv /app/env
@@ -8,10 +8,18 @@ RUN . /app/env/bin/activate
 RUN pip install -r requirements.txt
 
 COPY ./api.py /app
+COPY ./dropbox_client.py /app
+COPY ./parser.py /app
 COPY ./search.py /app
+COPY ./card.py /app
+COPY ./date_test.py /app
 COPY .env /app
+COPY ./worker.py /app
+COPY ./dropbox_client.py /app
 
 ENV FLASK_APP=api
 ENV PORT=5000
+
+EXPOSE 5000
 
 CMD ["python3", "api.py"]

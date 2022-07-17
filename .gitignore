@@ -145,3 +145,5 @@ src
 
 bin/
 include/
+
+dump.rdb
