@@ -16,10 +16,11 @@ COPY ./date_test.py /app
 COPY .env /app
 COPY ./worker.py /app
 COPY ./dropbox_client.py /app
+COPY ./prod.py /app
 
 ENV FLASK_APP=api
 ENV PORT=5000
 
 EXPOSE 5000
 
-CMD "waitress-serve --port=$PORT api:app"
+CMD ["python3", "prod.py"]
