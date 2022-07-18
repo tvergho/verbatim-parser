@@ -8,7 +8,7 @@ import sys
 from bs4 import BeautifulSoup
 from os.path import exists
 from os import listdir, makedirs
-from parser import Parser
+from local_parser import Parser
 from search import Search
 from urllib.parse import unquote
 from itertools import takewhile

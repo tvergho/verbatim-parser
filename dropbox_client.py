@@ -4,7 +4,7 @@ import json
 import asyncio
 import boto3
 
-from parser import Parser
+from local_parser import Parser
 from search import region, Search
 from memory_profiler import memory_usage, profile
 from rq import Queue
