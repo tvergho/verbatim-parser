@@ -301,6 +301,9 @@ def query():
   cite_match = request.args.get('cite_match', '')
   personal_only = request.args.get('personal_only', '')
 
+  if not account_id and personal_only == 'true':
+    return { 'error': 'You must be logged in to view your personal files' }, 401
+
   api = Api()
   (results, cursor) = asyncio.run(api.query(search, cursor, 
     start_date=start_date, end_date=end_date, exclude_sides=exclude_sides,

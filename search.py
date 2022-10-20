@@ -125,7 +125,7 @@ class Search():
         "bool": {
           "must_not": {
             "terms": {
-              "content_hash.keyword": list(map(lambda file: file.get("content_hash"), dropbox_files))
+              "content_hash.keyword": list(map(lambda file: file.get("content_hash", ""), dropbox_files))
             }
           },
           "must": {
