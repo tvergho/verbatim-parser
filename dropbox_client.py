@@ -16,6 +16,7 @@ bucket = "logos-debate-2"
 
 search = Search()
 s3 = boto3.client('s3', region_name=region, aws_access_key_id=os.environ['AWS_ACCESS_KEY_ID'], aws_secret_access_key=os.environ['AWS_SECRET_ACCESS_KEY'])
+db = boto3.client('dynamodb', region_name=region, aws_access_key_id=os.environ['AWS_ACCESS_KEY_ID'], aws_secret_access_key=os.environ['AWS_SECRET_ACCESS_KEY'])
 
 q = Queue(connection=conn)
 
@@ -104,3 +105,19 @@ class DropboxClient:
     for dropbox_file in files:
       q.enqueue(self.process_file, dropbox_file, account_id, job_id=f"{account_id}-{dropbox_file['content_hash']}")
       
+    # user = {
+    #   'account_id': { 'S': account_id },
+    #   'files': {
+    #     'M': {
+    #       f"{dropbox_file['path_lower']}": {
+    #         'S': dropbox_file['client_modified']
+    #       }
+    #     }
+    #   }
+    # }
+
+    # db.put_item(
+    #   TableName="logos-users",
+    #   Item=user
+    # )
+

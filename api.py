@@ -235,7 +235,7 @@ class Api:
       Item=user
     )
   
-  def get_access_token_for_user(self, account_id):
+  def get_access_for_user(self, account_id):
     kwargs = {
       'TableName': "logos-users",
       'Key': {
@@ -249,7 +249,9 @@ class Api:
 
     if response.get('Item') == None:
       return None
+    print(response['Item'])
     refresh_token = response['Item']['refresh_token']['S']
+    files = response['Item'].get('files', {})
 
     refreshed_token = requests.post('https://api.dropboxapi.com/oauth2/token', headers={ 'content-type': 'application/x-www-form-urlencoded' }, data={
       'refresh_token': refresh_token,
@@ -259,7 +261,7 @@ class Api:
     if refreshed_token.status_code != 200:
       return None
     
-    return refreshed_token.json()['access_token']
+    return refreshed_token.json()['access_token'], files
 
 def check_auth(token):
   try:
@@ -350,7 +352,7 @@ def cancel_user_jobs(account_id):
 def process_user(account_id):
   print(account_id)
   api = Api()
-  access_token = api.get_access_token_for_user(account_id)
+  access_token, files = api.get_access_for_user(account_id)
   print(access_token)
   dropbox = DropboxClient(access_token)
   files = dropbox.get_all_files()
