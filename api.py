@@ -29,16 +29,18 @@ app = Flask(__name__)
 CORS(app)
 
 results_per_page = 20
-class Api:
-  def __init__(self):
-    self.client = OpenSearch(
+
+client = OpenSearch(
       hosts = [{'host': host, 'port': 443}],
       http_auth = awsauth,
       use_ssl = True,
       verify_certs = True,
       connection_class = RequestsHttpConnection
     )
-    self.db = boto3.client('dynamodb', region_name=region, aws_access_key_id=os.environ['AWS_ACCESS_KEY_ID'], aws_secret_access_key=os.environ['AWS_SECRET_ACCESS_KEY'])
+db = boto3.client('dynamodb', region_name=region, aws_access_key_id=os.environ['AWS_ACCESS_KEY_ID'], aws_secret_access_key=os.environ['AWS_SECRET_ACCESS_KEY'])
+class Api:
+  def __init__(self, name=None):
+    self.name = name
 
   async def query(self, q, from_value=0, start_date="", end_date="", exclude_sides="", exclude_division="", exclude_years="", exclude_schools="", sort_by="", cite_match="", account_id=None, personal_only=""):
     results = self.query_search(q, from_value, start_date, end_date, exclude_sides, exclude_division, exclude_years, exclude_schools, sort_by, cite_match, account_id, personal_only)
@@ -160,7 +162,7 @@ class Api:
       ]
 
     print(query)
-    response = self.client.search(
+    response = client.search(
       body=query,
       index="personal" if personal_only == 'true' else index_prefix + '*' + (',personal' if account_id is not None else '')
     )
@@ -182,7 +184,7 @@ class Api:
         }
       }
     }
-    response = self.client.search(
+    response = client.search(
       body=query,
       index=index_prefix + '-college*'
     )
@@ -208,7 +210,7 @@ class Api:
         kwargs['ExpressionAttributeNames'] = {
           '#y': 'year'
         }
-      return self.db.get_item(**kwargs)
+      return db.get_item(**kwargs)
     
     response = await loop.run_in_executor(None, get_item)
     
@@ -230,7 +232,7 @@ class Api:
       'refresh_token': { 'S': refresh_token }
     }
 
-    self.db.put_item(
+    db.put_item(
       TableName="logos-users",
       Item=user
     )
@@ -245,7 +247,7 @@ class Api:
       },
       'ReturnConsumedCapacity': 'NONE'
     }
-    response = self.db.get_item(**kwargs)
+    response = db.get_item(**kwargs)
 
     if response.get('Item') == None:
       return None
@@ -348,7 +350,6 @@ def cancel_user_jobs(account_id):
     job = Job.fetch(job_id, connection=conn)
     job.cancel()
 
-# @profile
 def process_user(account_id):
   print(account_id)
   api = Api()
