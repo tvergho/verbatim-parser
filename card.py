@@ -139,7 +139,13 @@ class Card():
     return db_representation
 
   def __str__(self):
-    return f"{self.tag}\n{self.cite}\n{self.body}\n"
+    if self.additional_info.get("filename") is None:
+      return f"{self.tag}\n{self.cite}\n{self.body}\n"
+    else:
+      return f"{self.tag}\n{self.cite}\n{self.body}\n{self.additional_info['filename']}"
 
   def __repr__(self):
-    return f"\n{self.tag}\n{self.cite}\n{self.body}\n"
+    if self.additional_info.get("filename") is None:
+      return f"{self.tag}\n{self.cite}\n{self.body}\n"
+    else:
+      return f"{self.tag}\n{self.cite}\n{self.body}\n{self.additional_info['filename']}"

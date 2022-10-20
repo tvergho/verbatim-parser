@@ -154,17 +154,19 @@ class Api:
             }
           })
       
-    
+    index = "personal" if personal_only == 'true' else index_prefix + '*' + (',personal' if account_id is not None else '')
+
     if account_id != None:
       query["query"]["bool"]["should"] = [
         { "match": { "team": account_id } },
-        { "term": { "_index": f"{index_prefix}*" }  }
+        { "term": { "_index": index }  }
       ]
 
     print(query)
+    print(index)
     response = client.search(
       body=query,
-      index="personal" if personal_only == 'true' else index_prefix + '*' + (',personal' if account_id is not None else '')
+      index=index
     )
     
     return response['hits']['hits']

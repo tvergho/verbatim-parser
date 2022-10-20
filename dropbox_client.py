@@ -57,15 +57,18 @@ class DropboxClient:
 
     path = dropbox_file['id']
     name = dropbox_file['name']
-    filename = f"{trunc_account_id}/{dropbox_file['content_hash']}/{name}"
     path_lower = dropbox_file['path_lower']
+    path_display = dropbox_file['path_display']
+    content_hash = dropbox_file['content_hash']
+
+    filename = f"{trunc_account_id}{path_display}"
 
     if path_lower.split('.')[len(path_lower.split('.')) - 1] != 'docx':
       return
     
-    if search.check_filename_in_search(filename, opt_prefix="personal"):
-        print(f"{name} already in search, skipping")
-        return
+    if search.check_content_hash_in_search(content_hash):
+      print(f"Skipping {filename} because it already exists in search")
+      return
 
     response = requests.post('https://content.dropboxapi.com/2/files/download', headers={
       **self.headers,
@@ -89,7 +92,8 @@ class DropboxClient:
       "team": trunc_account_id,
       "division": "personal",
       "year": "",
-      "download_url": f"{s3_url}/{filename}"
+      "download_url": f"{s3_url}/{filename}",
+      "content_hash": dropbox_file['content_hash'],
     }
     parser = Parser(tmp_path, additional_info)
     cards = parser.parse()
@@ -103,21 +107,9 @@ class DropboxClient:
   # @profile
   def process_files(self, files, account_id):
     for dropbox_file in files:
-      q.enqueue(self.process_file, dropbox_file, account_id, job_id=f"{account_id}-{dropbox_file['content_hash']}")
-      
-    # user = {
-    #   'account_id': { 'S': account_id },
-    #   'files': {
-    #     'M': {
-    #       f"{dropbox_file['path_lower']}": {
-    #         'S': dropbox_file['client_modified']
-    #       }
-    #     }
-    #   }
-    # }
+      if dropbox_file['.tag'] == 'file':
+        q.enqueue(self.process_file, dropbox_file, account_id, job_id=f"{account_id}-{dropbox_file['content_hash']}")
 
-    # db.put_item(
-    #   TableName="logos-users",
-    #   Item=user
-    # )
-
+    # Remove files that are no longer in dropbox
+    trunc_account_id = account_id.split(':')[1]
+    search.remove_files(files, trunc_account_id)
