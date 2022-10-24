@@ -5,11 +5,11 @@ import aiohttp
 import traceback
 import json
 import sys
-from os.path import exists
+from os.path import exists, getsize
 from os import listdir, makedirs
 from local_parser import Parser
 from search import Search
-from urllib.parse import unquote
+from urllib.parse import unquote, quote
 from itertools import takewhile
 from multiprocessing import Pool
 
@@ -24,7 +24,7 @@ def parse_and_upload(folder, filename, additional_info):
     if search.check_filename_in_search(unquote(filename)):
       print(f"{filename} already in search, skipping")
       return
-
+    print(folder + filename)
     parser = Parser(folder + filename, additional_info)
     cards = parser.parse()
     search.upload_cards(cards, True)
@@ -35,7 +35,7 @@ def parse_and_upload(folder, filename, additional_info):
     print(traceback.format_exc())
 
 class Scraper:
-  def __init__(self, division, year, folder, username=None, password=None):
+  def __init__(self, division, year, folder, username=None, password=None, credentials=None):
     self.folder = folder + division + "/" + year + "/"
 
     try:
@@ -47,18 +47,26 @@ class Scraper:
     self.year = year
     self.api_prefix = division + year
 
-    self.caselist_token = None
+    self.tokens = {}
     self.cookies = {}
 
     if username and password:
       self.authenticate(username, password)
+    elif credentials:
+      for username, password in credentials.items():
+        self.authenticate(username, password)
 
     self.schools = []
     self.load_schools()
     print("Schools loaded: " + str(len(self.schools)))
 
     self.download_urls = {}
-    self.session = aiohttp.ClientSession(cookies=self.cookies)
+
+    self.sessions = []
+    for token in self.tokens.values():
+      self.sessions.append(aiohttp.ClientSession(cookies={"caselist_token": token}))
+
+    self.session = self.sessions[0]
 
   def load_schools(self):
     url = f"https://api.opencaselist.com/v1/caselists/{self.api_prefix}/schools"
@@ -74,15 +82,18 @@ class Scraper:
 
     login_request = requests.post(url="https://api.opencaselist.com/v1/login", json=body)
     login_json = login_request.json()
+    print(login_json)
     token = login_json["token"]
 
     if not token:
       raise Exception("Login failed")
 
-    self.caselist_token = token
-    self.cookies = {
-      "caselist_token": token
-    }
+    self.tokens[username] = token
+    self.cookies["caselist_token"] = token
+
+  async def close_all_sessions(self):
+    for session in self.sessions:
+      await session.close()
 
   async def scrape(self):
     if len(self.schools) > 0:
@@ -118,7 +129,7 @@ class Scraper:
         if not debate_round['opensource']:
           continue
 
-        url = f"https://api.opencaselist.com/v1/download?path={debate_round['opensource']}"
+        url = f"https://api.opencaselist.com/v1/download?path={quote(debate_round['opensource'])}"
         filename = debate_round['opensource'].split("/")[-1]
         debate_rounds.append([url, filename, school, team])
       
@@ -128,25 +139,43 @@ class Scraper:
       print(e)
       return
   
-  async def download_document(self, url, filename, school_name, team_name):
+  async def download_document(self, url, filename, school_name, team_name, force_download=False, session_index=0):
     self.download_urls[filename] = {
       "download_url": url,
       "school": school_name,
       "team": team_name
     }
 
-    if exists(self.folder + filename):
+    if exists(self.folder + filename) and not force_download and getsize(self.folder + filename) > 1000:
       return
 
-    doc = await self.session.get(url)
+    session = self.sessions[session_index]
+    doc = await session.get(url)
 
     with open(self.folder + filename, "wb") as f:
       while True:
         chunk = await doc.content.read(1024)
         if not chunk:
           break
+
+        try:
+          data = json.loads(chunk)
+          if "You can only download 10 files per minute." in data["message"]:
+            if session_index == len(self.sessions) - 1:
+              print("Rate limit reached, waiting 60 seconds")
+              await asyncio.sleep(60)
+              await self.download_document(url, filename, school_name, team_name, force_download=True, session_index=0)
+            else:
+              print(f"Rate limit reached, retrying with session {session_index + 1}")
+              await self.download_document(url, filename, school_name, team_name, force_download=True, session_index=session_index + 1)
+            return
+          elif "File not found" in data["message"]:
+            print(f"{filename} not found for url {url}")
+            return
+        except:
+          pass
+
         f.write(chunk)
-    await asyncio.sleep(0.5)
   
   def upload_documents(self):
     return [self.upload_document(filename) for filename in listdir(self.folder) if filename.endswith(".docx")]
