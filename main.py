@@ -32,19 +32,19 @@ async def process_downloaded_documents(division, year):
   pool = Pool(processes=4)
   scraper = Scraper(division, year, tmp_folder, credentials=logins)
 
-  if exists(tmp_folder + division + "/" + year + "/" + download_doc):
-    scraper.load_download_urls()
-  else:
-    await scraper.scrape()
+  # if exists(tmp_folder + division + "/" + year + "/" + download_doc):
+  #   scraper.load_download_urls()
+  # else:
+  await scraper.scrape()
 
-  executables = scraper.upload_documents()
-  pool.starmap(parse_and_upload, executables)
-  pool.close()
-  pool.join()
+  # executables = scraper.upload_documents()
+  # pool.starmap(parse_and_upload, executables)
+  # pool.close()
+  # pool.join()
 
   await scraper.close_all_sessions()
 
 if __name__ == "__main__":
   load_logins()
   loop = asyncio.get_event_loop()
-  loop.run_until_complete(process_downloaded_documents("ndtceda", "21"))
+  loop.run_until_complete(process_downloaded_documents("ndtceda", "22"))
