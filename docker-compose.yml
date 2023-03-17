@@ -1,0 +1,11 @@
+version: "3.9"
+services:
+  backend:
+    image: "logos-backend:latest"
+    build: 
+      context: ./
+      dockerfile: "Dockerfile.web"
+    ports:
+      - "5000:5000"
+  # redis:
+  #   image: "redis:alpine"

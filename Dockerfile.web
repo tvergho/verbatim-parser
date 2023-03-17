@@ -10,13 +10,14 @@ RUN pip install -r requirements.txt
 COPY ./api.py /app
 COPY ./dropbox_client.py /app
 COPY ./local_parser.py /app
-COPY ./search.py /app
+COPY ./new_search.py /app
 COPY ./card.py /app
 COPY ./date_test.py /app
 COPY .env /app
 COPY ./worker.py /app
 COPY ./dropbox_client.py /app
 COPY ./prod.py /app
+COPY ./search.py /app
 
 ENV FLASK_APP=api
 ENV PORT=5000

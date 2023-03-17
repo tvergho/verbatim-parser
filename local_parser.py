@@ -3,7 +3,6 @@ import os
 import traceback
 from docx import Document
 from card import TAG_NAME, Card
-from search import Search
 
 class Parser():
   def __init__(self, filename, additional_info={}):

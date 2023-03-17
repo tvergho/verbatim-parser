@@ -30,7 +30,7 @@ co = cohere.Client(os.environ['COHERE_KEY'])
 app = Flask(__name__)
 CORS(app)
 
-results_per_page = 20
+results_per_page = 50
 
 db = boto3.client('dynamodb', region_name=region, aws_access_key_id=os.environ['AWS_ACCESS_KEY_ID'], aws_secret_access_key=os.environ['AWS_SECRET_ACCESS_KEY'])
 class Api:
@@ -51,12 +51,12 @@ class Api:
     embeddings = cohere_response.embeddings
 
     filter_dict = {'$and': []}
-    filtered = False
+
     if start_date != "" and end_date != "":
       filter_dict['$and'].append({
         "cite_date": {
-          "$gte": start_date,
-          "$lte": end_date
+          "$gte": int(start_date),
+          "$lte": int(end_date)
         }
       })
     if exclude_division != "":
@@ -86,7 +86,8 @@ class Api:
       top_k=200,
       include_values=False,
       include_metadata=False,
-      vector=embeddings[0]
+      vector=embeddings[0],
+      filter=filter_dict
     )
 
     # if cite_match != "": 
@@ -101,7 +102,13 @@ class Api:
     return matches
 
   def get_colleges(self):
-    return []
+    return ['AmherstHarvard', 'ArizonaState', 'ArizonaStateUniversity', 'Army', 'Baylor', 'Binghamton', 'CSUFullerton', 'CSULongBeach', 'CSUNorthridge', 'CalBerkeley', 'CalStateFullerton', 'CentralOklahoma', 'Columbia', 'Cornell', 
+    'Dartmouth', 'Emory', 'EmoryUniversity', 'EmporiaState', 'FresnoCityCollege', 'FullertonCollege', 'GeorgeMason', 'Georgetown', 'Georgia', 'GeorgiaState', 'Gonzaga', 
+    'Harvard', 'Houston', 'Indiana', 'Iowa', 'JCCC', 'JamesMadison', 'KCKCC', 'Kansas', 'KansasState', 'Kentucky', 'Liberty', 'LibertyUniversity', 'Louisville', 'Macalester', 
+    'MaryWashington', 'Michigan', 'MichiganState', 'MichiganStateUniversity', 'Minnesota', 'Minnesota-Houston', 'Minnesota-INTEC', 'Minnesota-Indiana', 'MissouriState', 'Monmouth', 'NYU', 
+    'Navy', 'NebraskaLincoln', 'NewSchool', 'Northeastern', 'Northwestern', 'Oakton', 'Oklahoma', 'PennStateDebate', 'Pennsylvania', 'Pittsburgh', 'Purdue', 'Rochester', 'Rutgers', 'SaintMarys', 'Samford', 
+    'SouthernCalifornia', 'SouthernNazarene', 'SouthwesternCollege', 'Texas', 'TexasTech', 'Towson', 'Trinity', 'Tufts', 'TuftsUniversity', 'UMassAmherst', 'UNLV', 'UTD', 'UTSA', 'UTSanAntonio', 'WKU', 'WVU', 'WakeForest', 
+    'WakeForestUniversity', 'Washington', 'WashingtonUniversity', 'WayneState', 'WeberState', 'WeberStateUniversity', 'WestGeorgia', 'WestVirginiaUniversity', 'WesternWashington', 'WesternWashingtonUniversity', 'WichitaState', 'Wyoming']
 
   async def get_by_id(self, id, preview=True):
     loop = asyncio.get_event_loop()
