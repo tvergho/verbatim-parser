@@ -23,7 +23,7 @@ import threading
 
 load_dotenv()
 
-credentials = boto3.Session(aws_access_key_id=os.environ['AWS_ACCESS_KEY_ID'], aws_secret_access_key=os.environ['AWS_SECRET_ACCESS_KEY']).get_credentials()
+credentials = boto3.Session(aws_access_key_id=os.environ['AWS_ACCESS_KEY_ID_2'], aws_secret_access_key=os.environ['AWS_SECRET_ACCESS_KEY_2']).get_credentials()
 awsauth = AWS4Auth(credentials.access_key, credentials.secret_key, region, service)
 app = Flask(__name__)
 CORS(app)
@@ -71,7 +71,7 @@ class Api:
                 "fields": ["tag^4", "highlighted_text^3", "cite^3", "body"],
                 "fuzziness" : "AUTO",
                 "operator":   "and",
-                "analyzer": "syn_analyzer",
+                # "analyzer": "syn_analyzer",
                 "type": "best_fields",
                 "cutoff_frequency": 0.001
               }

@@ -12,18 +12,18 @@ region = 'us-west-1'
 table_name = 'logos-debate'
 index_prefix = "cards3"
 
-service = 'es'
-credentials = boto3.Session(aws_access_key_id=os.environ['AWS_ACCESS_KEY_ID'], aws_secret_access_key=os.environ['AWS_SECRET_ACCESS_KEY']).get_credentials()
-awsauth = AWS4Auth(credentials.access_key, credentials.secret_key, region, service)
+# service = 'es'
+# credentials = boto3.Session(aws_access_key_id=os.environ['AWS_ACCESS_KEY_ID'], aws_secret_access_key=os.environ['AWS_SECRET_ACCESS_KEY']).get_credentials()
+# awsauth = AWS4Auth(credentials.access_key, credentials.secret_key, region, service)
 class Search():
   def __init__(self):
-    self.search = OpenSearch(
-      hosts = [{'host': host, 'port': 443}],
-      http_auth = awsauth,
-      use_ssl = True,
-      verify_certs = True,
-      connection_class = RequestsHttpConnection
-    )
+    # self.search = OpenSearch(
+    #   hosts = [{'host': host, 'port': 443}],
+    #   http_auth = awsauth,
+    #   use_ssl = True,
+    #   verify_certs = True,
+    #   connection_class = RequestsHttpConnection
+    # )
     self.db = boto3.client('dynamodb', region_name=region, aws_access_key_id=os.environ['AWS_ACCESS_KEY_ID'], aws_secret_access_key=os.environ['AWS_SECRET_ACCESS_KEY'])
     self.unprocessed_cards = []
 

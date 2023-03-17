@@ -8,7 +8,7 @@ import sys
 from os.path import exists, getsize
 from os import listdir, makedirs
 from local_parser import Parser
-from search import Search
+from new_search import Search
 from urllib.parse import unquote, quote
 from itertools import takewhile
 from multiprocessing import Pool
@@ -17,22 +17,6 @@ tmp_folder = "./tmp/"
 download_doc = "download_urls.txt"
 
 sys.setrecursionlimit(25000)
-search = Search()
-
-def parse_and_upload(folder, filename, additional_info):
-  try:
-    if search.check_filename_in_search(unquote(filename)):
-      print(f"{filename} already in search, skipping")
-      return
-    print(folder + filename)
-    parser = Parser(folder + filename, additional_info)
-    cards = parser.parse()
-    search.upload_cards(cards, True)
-    search.upload_to_dynamo(cards)
-    print(f"{filename} processed")
-  except Exception as e:
-    print(e)
-    print(traceback.format_exc())
 
 class Scraper:
   def __init__(self, division, year, folder, username=None, password=None, credentials=None):
@@ -98,7 +82,12 @@ class Scraper:
   async def scrape(self):
     if len(self.schools) > 0:
       for school in self.schools:
-        await self.scrape_school(school)
+        try:
+          await self.scrape_school(school)
+        except:
+          print("Rate limit reached, waiting 60 seconds")
+          await asyncio.sleep(60)
+          await self.scrape()
 
     f = open(self.folder + download_doc, "w")
     json.dump(self.download_urls, f)
@@ -133,7 +122,9 @@ class Scraper:
         filename = debate_round['opensource'].split("/")[-1]
         debate_rounds.append([url, filename, school, team])
       
-      await asyncio.gather(*[self.download_document(url, filename, school, team) for url, filename, school, team in debate_rounds])
+      # Evenly assign session indexes
+
+      await asyncio.gather(*[self.download_document(url, filename, school, team, session_index=(i % len(self.sessions))) for i, (url, filename, school, team) in enumerate(debate_rounds)])
     except Exception as e:
       await asyncio.sleep(10)
       print(e)

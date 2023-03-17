@@ -147,3 +147,7 @@ bin/
 include/
 
 dump.rdb
+
+*.ipynb
+done/
+share/

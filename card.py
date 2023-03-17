@@ -82,7 +82,7 @@ class Card():
     index = {
       "tag": self.tag,
       "cite": self.cite,
-      "body": self.body,
+      # "body": self.body,
       "id": self.object_id,
       "highlighted_text": self.highlighted_text,
       **self.additional_info
