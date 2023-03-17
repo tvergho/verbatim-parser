@@ -151,3 +151,4 @@ dump.rdb
 *.ipynb
 done/
 share/
+scratch.*

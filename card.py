@@ -127,12 +127,14 @@ class Card():
 
   def __str__(self):
     if self.additional_info.get("filename") is None:
-      return f"{self.tag}\n{self.cite}\n{self.body}\n"
+      return f"{self.tag}\n{self.cite}\n{self.body}"
     else:
-      return f"{self.tag}\n{self.cite}\n{self.body}\n{self.additional_info['filename']}"
+      # return f"{self.tag}\n{self.cite}\n{self.body}\n{self.additional_info['filename']}"
+      return f"{self.tag}\n{self.cite}\n{self.body}"
 
   def __repr__(self):
     if self.additional_info.get("filename") is None:
-      return f"{self.tag}\n{self.cite}\n{self.body}\n"
+      return f"{self.tag}\n{self.cite}\n{self.body}"
     else:
-      return f"{self.tag}\n{self.cite}\n{self.body}\n{self.additional_info['filename']}"
+      # return f"{self.tag}\n{self.cite}\n{self.body}\n{self.additional_info['filename']}"
+      return f"{self.tag}\n{self.cite}\n{self.body}"
