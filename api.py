@@ -1,6 +1,4 @@
-from search import host, region, service, index_prefix, table_name
-from opensearchpy import OpenSearch, RequestsHttpConnection
-from requests_aws4auth import AWS4Auth
+from new_search import region, table_name, namespace
 from requests.auth import HTTPBasicAuth
 from dynamodb_json import json_util as json
 from flask import Flask, request, Response
@@ -21,22 +19,19 @@ import asyncio
 import requests
 import threading
 
-load_dotenv()
+import pinecone
+import cohere
 
-credentials = boto3.Session(aws_access_key_id=os.environ['AWS_ACCESS_KEY_ID_2'], aws_secret_access_key=os.environ['AWS_SECRET_ACCESS_KEY_2']).get_credentials()
-awsauth = AWS4Auth(credentials.access_key, credentials.secret_key, region, service)
+load_dotenv()
+pinecone.init(api_key=os.environ['PINECONE_KEY'], environment="us-east-1-aws")
+index = pinecone.Index("logos")
+co = cohere.Client(os.environ['COHERE_KEY'])
+
 app = Flask(__name__)
 CORS(app)
 
 results_per_page = 20
 
-client = OpenSearch(
-      hosts = [{'host': host, 'port': 443}],
-      http_auth = awsauth,
-      use_ssl = True,
-      verify_certs = True,
-      connection_class = RequestsHttpConnection
-    )
 db = boto3.client('dynamodb', region_name=region, aws_access_key_id=os.environ['AWS_ACCESS_KEY_ID'], aws_secret_access_key=os.environ['AWS_SECRET_ACCESS_KEY'])
 class Api:
   def __init__(self, name=None):
@@ -44,155 +39,69 @@ class Api:
 
   async def query(self, q, from_value=0, start_date="", end_date="", exclude_sides="", exclude_division="", exclude_years="", exclude_schools="", sort_by="", cite_match="", account_id=None, personal_only=""):
     results = self.query_search(q, from_value, start_date, end_date, exclude_sides, exclude_division, exclude_years, exclude_schools, sort_by, cite_match, account_id, personal_only)
-    db_results = await asyncio.gather(*[self.get_by_id(result['_id']) for result in results])
-    cursor = from_value + len(results)
+    db_results = await asyncio.gather(*[self.get_by_id(result) for result in results[from_value:from_value+results_per_page]])
+    cursor = from_value + results_per_page
     return ([result for result in db_results if result != None], cursor)
 
   def query_search(self, q, from_value, start_date="", end_date="", exclude_sides="", exclude_division="", exclude_years="", exclude_schools="", sort_by="", cite_match="", account_id=None, personal_only=""):
-    query = {
-      "size": results_per_page,
-      "from": from_value,
-      "query": {
-        "bool": {
-          "must": []
-        }
-      },
-      "_source": False
-    }
+    cohere_response = co.embed(
+      texts=[q], 
+      truncate="END"
+    )
+    embeddings = cohere_response.embeddings
 
-    if q != "":
-        q_parts = q.split('\"')
-
-        for part in [part for [i, part] in enumerate(q_parts) if i % 2 == 0]:
-          if len(part.strip()) > 0:
-            query['query']['bool']['must'] = [{
-              "multi_match": {
-                "query": part.strip(),
-                "fields": ["tag^4", "highlighted_text^3", "cite^3", "body"],
-                "fuzziness" : "AUTO",
-                "operator":   "and",
-                # "analyzer": "syn_analyzer",
-                "type": "best_fields",
-                "cutoff_frequency": 0.001
-              }
-            }]
-        for part in [part for [i, part] in enumerate(q_parts) if i % 2 == 1]:
-          if len(part.strip()) > 0:
-            query['query']['bool']['must'].append({
-              "multi_match": {
-                "query": part,
-                "type": "phrase",
-                "fields": ["tag^4", "highlighted_text^3", "cite^3", "body"],
-                "operator": "and"
-              }
-            })
-
-    if cite_match != "":
-      query['query']['bool']['must'].append({
-        "bool": {
-          "should": [
-            {
-              "wildcard": {
-                "cite.keyword": "*" + cite_match + "*"
-              }
-            },
-            {
-              "wildcard": {
-                "cite": "*" + cite_match + "*"
-              }
-            }
-          ]
+    filter_dict = {'$and': []}
+    filtered = False
+    if start_date != "" and end_date != "":
+      filter_dict['$and'].append({
+        "cite_date": {
+          "$gte": start_date,
+          "$lte": end_date
         }
       })
-
-    if start_date != "" and end_date != "":
-      query["query"]["bool"]["filter"] = [
-          {
-            "range": {
-              "cite_date": {
-                "gte": start_date,
-                "lte": end_date
-              }
-            }
-          }
-        ]
-    
-    if exclude_sides != "":
-      query["query"]["bool"]["must_not"] = [{
-          "match": {
-            "filename": exclude_sides
-          }
-        }]
-    
-    if query["query"]["bool"].get("must_not") == None:
-        query["query"]["bool"]["must_not"] = []
-
     if exclude_division != "":
-      divisions = exclude_division.split(",")
-      for division in divisions:
-        query["query"]["bool"]["must_not"].append({
-            "match_phrase_prefix": {
-              "division": division.split('-')[0]
-            }
-          })
-
+      for division in exclude_division.split(","):
+        filter_dict['$and'].append({
+          "division": {
+            "$ne": division
+          }
+        })
     if exclude_schools != "":
-      schools = exclude_schools.split(",")
-      for school in schools:
-        query["query"]["bool"]["must_not"].append({
-            "term": {
-              "school.keyword": school
-            }
-          })
-    
+      for school in exclude_schools.split(","):
+        filter_dict['$and'].append({
+          "school": {
+            "$ne": school
+          }
+        })
     if exclude_years != "":
-      years = exclude_years.split(",")
-      for year in years:
-        query["query"]["bool"]["must_not"].append({
-            "term": {
-              "year.keyword": year
-            }
-          })
-      
-    index = "personal" if personal_only == 'true' else index_prefix + '*' + (',personal' if account_id is not None else '')
+      for year in exclude_years.split(","):
+        filter_dict['$and'].append({
+          "year": {
+            "$ne": year
+          }
+        })
 
-    if account_id != None:
-      query["query"]["bool"]["should"] = [
-        { "match": { "team": account_id } },
-        { "term": { "_index": index }  }
-      ]
-
-    print(query)
-    print(index)
-    response = client.search(
-      body=query,
-      index=index
+    response = index.query(
+      namespace=namespace,
+      top_k=200,
+      include_values=False,
+      include_metadata=False,
+      vector=embeddings[0]
     )
+
+    # if cite_match != "": 
+
+    # if exclude_sides != "":
+      
+    # index = "personal" if personal_only == 'true' else index_prefix + '*' + (',personal' if account_id is not None else '')
+
+    # if account_id != None:
     
-    return response['hits']['hits']
+    matches = list(map(lambda x : x['id'], response.matches))
+    return matches
 
   def get_colleges(self):
-    query = {
-      "size": 0,
-      "aggs": {
-        "schools": {
-          "terms": {
-            "field": "school.keyword",
-            "size": 50000000,
-            "order": {
-              "_term": "asc",
-            }
-          }
-        }
-      }
-    }
-    response = client.search(
-      body=query,
-      index=index_prefix + '-college*'
-    )
-    schools = response['aggregations']['schools']['buckets']
-    schools = [school['key'] for school in schools]
-    return schools
+    return []
 
   async def get_by_id(self, id, preview=True):
     loop = asyncio.get_event_loop()
