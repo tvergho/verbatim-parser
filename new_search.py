@@ -12,11 +12,12 @@ co = cohere.Client(os.environ['COHERE_KEY'])
 
 namespace = "cards"
 region = 'us-west-1'
-table_name = 'logos-debate'
+table_name = 'logos-debate-pinecone'
 
 class Search():
   def __init__(self):
     self.unprocessed_cards = []
+    self.unprocessed_dynamo_cards = []
     self.db = boto3.client('dynamodb', region_name=region, aws_access_key_id=os.environ['AWS_ACCESS_KEY_ID'], aws_secret_access_key=os.environ['AWS_SECRET_ACCESS_KEY'])
 
   def check_card_in_search(self, id):
@@ -53,6 +54,34 @@ class Search():
     while len(self.unprocessed_cards) > 0:
       self.upload_cards([])
       print(f"{len(self.unprocessed_cards)} remaining")
+    
+    print(f"{len(self.unprocessed_dynamo_cards)} remaining")
+    while len(self.unprocessed_dynamo_cards) > 0:
+      self.upload_to_dynamo([])
+      print(f"{len(self.unprocessed_dynamo_cards)} remaining")
+
+  def upload_to_dynamo(self, cards):
+    self.unprocessed_dynamo_cards.extend(list(map(lambda card: {"PutRequest": {"Item": card.get_dynamo()}}, cards)))
+    to_process = self.unprocessed_dynamo_cards[:25]
+    self.unprocessed_dynamo_cards = self.unprocessed_dynamo_cards[25:]
+
+    # de-duplicate to avoid BatchWriteItem errors
+    acc = []
+    for item in to_process:
+      if not any(i['PutRequest']['Item']['id']['S'] == item['PutRequest']['Item']['id']['S'] for i in acc):
+        acc.append(item)
+
+    to_process = acc
+    if len(to_process) > 0:
+      response = self.db.batch_write_item(
+        RequestItems={
+          table_name: to_process
+        }
+      )
+
+      unprocessed = response.get("UnprocessedItems", {}).get(table_name, [])
+      self.unprocessed_dynamo_cards.extend(unprocessed)
+      print(f"Uploaded {len(to_process)} cards to DynamoDB")
   
   
   # Clean up old cards from search and DynamoDB that are no longer in the Dropbox

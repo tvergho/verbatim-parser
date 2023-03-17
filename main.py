@@ -33,8 +33,7 @@ def parse_and_upload(folder, filename, additional_info):
     cards = list({card.object_id: card for card in cards}.values())
 
     search.upload_cards(cards)
-
-    # search.upload_to_dynamo(cards)
+    search.upload_to_dynamo(cards)
     print(f"{filename} processed")
 
     os.rename(folder + filename, done_folder + filename)
@@ -89,6 +88,5 @@ if __name__ == "__main__":
 
   try:
     loop.run_until_complete(process_downloaded_documents("ndtceda", args.year))
-  except Exception as e:
-    print(e)
+  finally:
     keyboard_interrupt()

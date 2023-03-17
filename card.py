@@ -1,6 +1,7 @@
 import hashlib
 from date_test import generate_date_from_cite
 import re
+from datetime import datetime
 
 TAG_NAME = "Heading 4"
 NORMAL_NAME = "Normal"
@@ -82,13 +83,19 @@ class Card():
     index = {
       "tag": self.tag,
       "cite": self.cite,
-      # "body": self.body,
-      "id": self.object_id,
       "highlighted_text": self.highlighted_text,
+      "id": self.object_id,
       **self.additional_info
     }
     if self.cite_date is not None:
-      index["cite_date"] = self.cite_date.strftime("%Y-%m-%d")
+      dt = datetime(
+        year=self.cite_date.year,
+        month=self.cite_date.month,
+        day=self.cite_date.day,
+      )
+
+      timestamp = int(dt.timestamp())
+      index["cite_date"] = timestamp
     return index
   
   def get_dynamo(self):
