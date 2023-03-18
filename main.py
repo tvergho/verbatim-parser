@@ -39,7 +39,6 @@ def parse_and_upload(folder, filename, additional_info):
     os.rename(folder + filename, done_folder + filename)
   except Exception as e:
     print(e)
-    print(traceback.format_exc())
 
 def keyboard_interrupt():
   search.upload_all_remaining_cards()

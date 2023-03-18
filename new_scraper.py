@@ -181,6 +181,9 @@ class Scraper:
     team_name = download_data["team"]
     download_url = download_data["download_url"]
 
+    if not exists(self.folder + filename):
+      return
+
     try:
       additional_info = {
         "filename": unquote(filename), 
