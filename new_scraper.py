@@ -50,6 +50,7 @@ class Scraper:
     for token in self.tokens.values():
       self.sessions.append(aiohttp.ClientSession(cookies={"caselist_token": token}))
 
+    self.session_index = 0
     self.session = self.sessions[0]
 
   def load_schools(self):
@@ -79,15 +80,22 @@ class Scraper:
     for session in self.sessions:
       await session.close()
 
-  async def scrape(self):
+  async def scrape(self, name=None):
     if len(self.schools) > 0:
+      if name:
+        index = next((i for i, school in enumerate(self.schools) if school["name"] == name), None)
+        # start at that index
+        self.schools = self.schools[index:]
+
       for school in self.schools:
         try:
           await self.scrape_school(school)
         except:
           print("Rate limit reached, waiting 60 seconds")
+          self.session_index = (self.session_index + 1) % len(self.sessions)
+          self.session = self.sessions[self.session_index]
           await asyncio.sleep(60)
-          await self.scrape()
+          await self.scrape(name=school["name"])
 
     f = open(self.folder + download_doc, "w")
     json.dump(self.download_urls, f)
@@ -137,7 +145,7 @@ class Scraper:
       "team": team_name
     }
 
-    if exists(self.folder + filename) and not force_download and getsize(self.folder + filename) > 1000:
+    if exists(self.folder + filename) and not force_download and getsize(self.folder + filename) > 20:
       return
 
     session = self.sessions[session_index]

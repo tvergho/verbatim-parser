@@ -86,6 +86,6 @@ if __name__ == "__main__":
   args = parser.parse_args()
 
   try:
-    loop.run_until_complete(process_downloaded_documents("ndtceda", args.year))
+    loop.run_until_complete(process_downloaded_documents(args.division, args.year))
   finally:
     keyboard_interrupt()
