@@ -7,5 +7,14 @@ services:
       dockerfile: "Dockerfile.web"
     ports:
       - "5000:5000"
-  # redis:
-  #   image: "redis:alpine"
+  worker:
+    image: "logos-worker:latest"
+    build: 
+      context: ./
+      dockerfile: "Dockerfile.worker"
+    depends_on:
+      - redis
+  redis:
+    image: "redis:alpine"
+    ports:
+      - "6379:6379"

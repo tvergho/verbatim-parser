@@ -119,6 +119,9 @@ class Card():
       db_representation["filename"] = {"S": self.additional_info["filename"]}
       db_representation["school"] = {"S": self.additional_info["school"]}
       db_representation["team"] = {"S": self.additional_info["team"]}
+
+    if self.additional_info.get("content_hash") is not None:
+      db_representation["content_hash"] = {"S": self.additional_info["content_hash"]}
     
     if self.cite_date is not None:
       db_representation["cite_date"] = {"S": self.cite_date.strftime("%Y-%m-%d")}

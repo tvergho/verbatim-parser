@@ -63,7 +63,7 @@ class DropboxClient:
     if path_lower.split('.')[len(path_lower.split('.')) - 1] != 'docx':
       return
     
-    if search.check_content_hash_in_search(content_hash):
+    if search.check_card_in_search(content_hash):
       print(f"Skipping {filename} because it already exists in search")
       return
 
@@ -98,7 +98,7 @@ class DropboxClient:
 
     print(f'parsed {len(cards)} cards from {tmp_path}')
 
-    search.upload_cards(cards, opt_prefix="personal", force_upload=True)
+    search.upload_cards(cards, ns="personal")
     search.upload_to_dynamo(cards)
 
     print(f'processed {filename}')

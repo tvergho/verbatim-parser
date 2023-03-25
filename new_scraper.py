@@ -177,7 +177,8 @@ class Scraper:
         f.write(chunk)
   
   def upload_documents(self):
-    return [self.upload_document(filename) for filename in listdir(self.folder) if filename.endswith(".docx")]
+    docs = [self.upload_document(filename) for filename in listdir(self.folder) if filename.endswith(".docx")]
+    return [doc for doc in docs if doc is not None]
    
   def upload_document(self, filename):
     download_data = self.download_urls.get(filename)

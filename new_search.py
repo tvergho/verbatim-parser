@@ -13,6 +13,7 @@ co = cohere.Client(os.environ['COHERE_KEY'])
 namespace = "cards"
 region = 'us-west-1'
 table_name = 'logos-debate-pinecone'
+gsi_name = 'team-content_hash-index'
 
 class Search():
   def __init__(self):
@@ -30,7 +31,7 @@ class Search():
     )
     return 'matches' in response and len(response.matches) > 0
 
-  def upload_cards(self, cards):
+  def upload_cards(self, cards, ns=None):
     card_objects = list(map(lambda card: card.get_index(), cards))
     self.unprocessed_cards.extend(card_objects)
     to_upload = self.unprocessed_cards[:96]
@@ -43,7 +44,7 @@ class Search():
       )
       embeddings = cohere_response.embeddings
       index.upsert(
-        namespace=namespace, 
+        namespace=namespace if ns is None else ns, 
         vectors=[(card['id'], embedding, card) for card, embedding in zip(to_upload, embeddings)]
       )
 
@@ -83,53 +84,74 @@ class Search():
       self.unprocessed_dynamo_cards.extend(unprocessed)
       print(f"Uploaded {len(to_process)} cards to DynamoDB")
   
-  
+  def get_cards_by_team(team):
+    cards = []
+
+    # Initialize the pagination token
+    last_evaluated_key = None
+
+    while True:
+        query_params = {
+            'TableName': table_name,
+            'IndexName': gsi_name,
+            'KeyConditionExpression': 'team = :team',
+            'ExpressionAttributeValues': {
+                ':team': {'S': team}
+            }
+        }
+
+        # If a pagination token is available, add it to the query parameters
+        if last_evaluated_key:
+            query_params['ExclusiveStartKey'] = last_evaluated_key
+
+        # Perform the query
+        response = self.db.query(**query_params)
+
+        # Add the retrieved items to the cards list
+        cards.extend(response['Items'])
+
+        # Check if there's a LastEvaluatedKey to fetch the next set of items
+        if 'LastEvaluatedKey' in response:
+            last_evaluated_key = response['LastEvaluatedKey']
+        else:
+            break
+
+    return cards
+
   # Clean up old cards from search and DynamoDB that are no longer in the Dropbox
-  # def remove_files(self, dropbox_files, account_id):
-  #   # Get all the cards from search that don't have content hashes in the dropbox files
-  #   response = self.search.search(index="personal", body={
-  #     "query": {
-  #       "bool": {
-  #         "must_not": {
-  #           "terms": {
-  #             "content_hash.keyword": list(map(lambda file: file.get("content_hash", ""), dropbox_files))
-  #           }
-  #         },
-  #         "must": {
-  #           "match": {
-  #             "team": account_id
-  #           }
-  #         }
-  #       }
-  #     },
-  #     "_source": False,
-  #     "size": 2000
-  #   })
+  def remove_files(self, dropbox_files, account_id):
+    # Get all the cards from search that correspond to the account
+    cards = self.get_cards_by_team(account_id)
+    num_cards = len(cards)
 
-  #   num_cards = len(response['hits']['hits'])
+    # Get all the content_hash from dropbox_files
+    dropbox_content_hashes = list(map(lambda file: file['content_hash'], dropbox_files))
 
-  #   # Remove the cards from search
-  #   bulk_file = ""
-  #   for hit in response['hits']['hits']:
-  #     bulk_file += ('{ "delete" : { "_index" : "personal", "_type" : "_doc", "_id" : "' + hit['_id'] + '" } }\n')
-
-  #   if bulk_file is not None and len(bulk_file) > 0:
-  #     self.search.bulk(body=bulk_file)
-  #     print(f"Removed {num_cards} cards from OpenSearch")
-
-  #   # Remove the cards from DynamoDB in batches of 25
-  #   to_remove = list(map(lambda hit: {"DeleteRequest": {"Key": {"id": {"S": hit['_id']}}}}, response['hits']['hits']))
-  #   while len(to_remove) > 0:
-  #     batch = to_remove[:25]
-  #     to_remove = to_remove[25:]
-
-  #     db_response = self.db.batch_write_item(
-  #       RequestItems={
-  #         table_name: batch
-  #       }
-  #     )
-
-  #     unprocessed = response.get("UnprocessedItems", {}).get(table_name, [])
-  #     to_remove.extend(unprocessed)
+    # Isolate cards that are not in dropbox_files
+    cards = list(filter(lambda card: card['content_hash']['S'] not in dropbox_content_hashes, cards))
     
-  #   print(f"Removed {num_cards} cards from DynamoDB")
+    # Get those IDs
+    ids = list(map(lambda card: card['id']['S'], cards))
+
+    # Remove those cards from DynamoDB in batches of 25
+    to_remove = list(map(lambda hit: {"DeleteRequest": {"Key": {"id": {"S": hit}}}}, ids))
+
+    while len(to_remove) > 0:
+      batch = to_remove[:25]
+      to_remove = to_remove[25:]
+
+      db_response = self.db.batch_write_item(
+        RequestItems={
+          table_name: batch
+        }
+      )
+
+      unprocessed = response.get("UnprocessedItems", {}).get(table_name, [])
+      to_remove.extend(unprocessed)
+    
+    print(f"Removed {num_cards} cards from DynamoDB")
+
+    # Remove from Pinecone
+    index.delete(namespace="personal", ids=ids)
+
+    print(f"Removed {num_cards} cards from Pinecone")

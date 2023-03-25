@@ -7,9 +7,10 @@ from rq.registry import ScheduledJobRegistry
 
 listen = ['high', 'default', 'low']
 
-redis_url = os.getenv('REDISTOGO_URL', 'redis://localhost:6379')
+# redis_url = os.getenv('REDISTOGO_URL', 'redis://localhost:6379')
 
-conn = redis.from_url(redis_url)
+# conn = redis.from_url(redis_url)
+conn = redis.Redis(host='redis', port=6379, decode_responses=True)
 q = Queue(connection=conn, default_timeout=7200)
 
 def start_worker():
