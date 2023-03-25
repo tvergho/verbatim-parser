@@ -1,0 +1,25 @@
+services:
+  # A Docker web service
+  - type: web
+    name: logos-web
+    env: docker
+    region: oregon # optional (defaults to oregon)
+    plan: starter # optional (defaults to starter)
+    branch: vectors # optional (defaults to master)
+    rootDir: .
+    dockerfilePath: ./Dockerfile.web
+  # A background worker that consumes a queue
+  - type: worker
+    name: queue
+    env: docker
+    dockerfilePath: ./Dockerfile.worker
+    branch: vectors
+  # A Redis instance
+  - type: redis
+    name: lightning
+    branch: vectors
+    ipAllowList: # required
+      - source: 0.0.0.0/0
+        description: everywhere
+    plan: free # optional (defaults to starter)
+    maxmemoryPolicy: noeviction # optional (defaults to allkeys-lru)
