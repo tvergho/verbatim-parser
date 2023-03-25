@@ -4,7 +4,7 @@ services:
     name: logos-web
     env: docker
     region: oregon # optional (defaults to oregon)
-    plan: starter # optional (defaults to starter)
+    plan: free
     branch: vectors # optional (defaults to master)
     rootDir: .
     dockerfilePath: ./Dockerfile.web
