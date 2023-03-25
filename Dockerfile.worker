@@ -17,6 +17,5 @@ COPY .env /app
 COPY ./worker.py /app
 COPY ./dropbox_client.py /app
 COPY ./prod.py /app
-COPY ./search.py /app
 
 CMD ["python3", "worker.py"]
