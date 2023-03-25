@@ -84,7 +84,7 @@ class Search():
       self.unprocessed_dynamo_cards.extend(unprocessed)
       print(f"Uploaded {len(to_process)} cards to DynamoDB")
   
-  def get_cards_by_team(team):
+  def get_cards_by_team(self, team):
     cards = []
 
     # Initialize the pagination token
@@ -136,6 +136,8 @@ class Search():
     # Remove those cards from DynamoDB in batches of 25
     to_remove = list(map(lambda hit: {"DeleteRequest": {"Key": {"id": {"S": hit}}}}, ids))
 
+    print(f"Removing {num_cards} cards")
+
     while len(to_remove) > 0:
       batch = to_remove[:25]
       to_remove = to_remove[25:]
@@ -146,12 +148,13 @@ class Search():
         }
       )
 
-      unprocessed = response.get("UnprocessedItems", {}).get(table_name, [])
+      unprocessed = db_response.get("UnprocessedItems", {}).get(table_name, [])
       to_remove.extend(unprocessed)
     
     print(f"Removed {num_cards} cards from DynamoDB")
 
     # Remove from Pinecone
-    index.delete(namespace="personal", ids=ids)
+    if len(ids) > 0:
+      index.delete(namespace=namespace, ids=ids)
 
     print(f"Removed {num_cards} cards from Pinecone")

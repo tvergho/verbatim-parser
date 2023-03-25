@@ -50,7 +50,7 @@ class Api:
     )
     embeddings = cohere_response.embeddings
 
-    filter_dict = {'$and': []}
+    filter_dict = {'$and': [], '$or': []}
 
     if start_date != "" and end_date != "":
       filter_dict['$and'].append({
@@ -80,6 +80,23 @@ class Api:
             "$ne": year
           }
         })
+
+    filter_dict['$or'].extend([{
+      "division": {
+        "$eq": "ndtceda"
+      }
+    }, {
+      "division": {
+        "$eq": "hspolicy"
+      }
+    }])
+
+    if account_id != None:
+      filter_dict['$or'].append({
+        "team": {
+          "$eq": account_id
+        }
+      })
 
     response = index.query(
       namespace=namespace,

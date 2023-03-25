@@ -5,7 +5,7 @@ import asyncio
 import boto3
 
 from local_parser import Parser
-from search import region, Search
+from new_search import region, Search
 from memory_profiler import memory_usage, profile
 from worker import conn, q
 
@@ -97,19 +97,22 @@ class DropboxClient:
     cards = parser.parse()
 
     print(f'parsed {len(cards)} cards from {tmp_path}')
-
-    search.upload_cards(cards, ns="personal")
+    search.upload_cards(cards)
     search.upload_to_dynamo(cards)
 
     print(f'processed {filename}')
-    os.remove(tmp_path)
+    try:
+      os.remove(tmp_path)
+    except:
+      print(f'Could not remove {tmp_path}')
 
   # @profile
   def process_files(self, files, account_id):
     for dropbox_file in files:
       if dropbox_file['.tag'] == 'file':
         q.enqueue(self.process_file, dropbox_file, account_id, job_id=f"{account_id}-{dropbox_file['content_hash']}")
-
+    
     # Remove files that are no longer in dropbox
+    print(f"Removing {len(files)} files that are no longer in dropbox")
     trunc_account_id = account_id.split(':')[1]
     search.remove_files(files, trunc_account_id)
