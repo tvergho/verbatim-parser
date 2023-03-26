@@ -22,6 +22,7 @@ import threading
 import pinecone
 import cohere
 import logging
+import rq_dashboard
 
 load_dotenv()
 pinecone.init(api_key=os.environ['PINECONE_KEY'], environment="us-east-1-aws")
@@ -29,6 +30,8 @@ index = pinecone.Index("logos")
 co = cohere.Client(os.environ['COHERE_KEY'])
 
 app = Flask(__name__)
+app.config.from_object(rq_dashboard.default_settings)
+app.register_blueprint(rq_dashboard.blueprint, url_prefix="/rq")
 CORS(app)
 
 results_per_page = 50
