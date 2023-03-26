@@ -31,6 +31,18 @@ class Search():
     )
     return 'matches' in response and len(response.matches) > 0
 
+  def check_content_hash_in_dynamo(self, account_id, content_hash):
+    response = self.db.query(
+      TableName=table_name,
+      IndexName=gsi_name,
+      KeyConditionExpression="team = :team and content_hash = :content_hash",
+      ExpressionAttributeValues={
+        ":team": {"S": account_id},
+        ":content_hash": {"S": content_hash}
+      }
+    )
+    return 'Items' in response and len(response['Items']) > 0
+
   def upload_cards(self, cards, ns=None):
     card_objects = list(map(lambda card: card.get_index(), cards))
     self.unprocessed_cards.extend(card_objects)
