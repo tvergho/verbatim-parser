@@ -117,7 +117,7 @@ class DropboxClient:
       if dropbox_file['.tag'] == 'file':
         job_id = f"{account_id}-{dropbox_file['content_hash']}"
         if not Job.exists(job_id, connection=conn):
-          q.enqueue(self.process_file, dropbox_file, account_id, job_id=job_id)
+          q.enqueue(self.process_file, dropbox_file, account_id, job_id=job_id, failure_ttl=60)
         else:
           logger.info(f"Skipping {job_id} because it already exists in the queue")
     
