@@ -99,6 +99,7 @@ class DropboxClient:
     print(f'parsed {len(cards)} cards from {tmp_path}')
     search.upload_cards(cards)
     search.upload_to_dynamo(cards)
+    search.upload_all_remaining_cards()
 
     print(f'processed {filename}')
     try:
