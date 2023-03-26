@@ -162,11 +162,11 @@ class Api:
     user = {
       'account_id': { 'S': account_id },
       'email': { 'S': user.get('email', '') },
-      'display_name': { 'S': user['name'].get('display_name') },
-      'first_name': { 'S': user['name'].get('familiar_name') },
-      'last_name': { 'S': user['name'].get('surname') },
-      'profile_photo_url': { 'S': user.get('profile_photo_url') },
-      'country': { 'S': user.get('country') },
+      'display_name': { 'S': user['name'].get('display_name', '') },
+      'first_name': { 'S': user['name'].get('familiar_name', '') },
+      'last_name': { 'S': user['name'].get('surname', '') },
+      'profile_photo_url': { 'S': user.get('profile_photo_url', '') },
+      'country': { 'S': user.get('country', '') },
       'refresh_token': { 'S': refresh_token }
     }
 

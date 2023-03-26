@@ -125,7 +125,8 @@ class Search():
     num_cards = len(cards)
 
     # Get all the content_hash from dropbox_files
-    dropbox_content_hashes = list(map(lambda file: file['content_hash'], dropbox_files))
+    dropbox_content_hashes = list(map(lambda file: file.get('content_hash', None), dropbox_files))
+    dropbox_content_hashes = list(filter(lambda hash: hash is not None, dropbox_content_hashes))
 
     # Isolate cards that are not in dropbox_files
     cards = list(filter(lambda card: card['content_hash']['S'] not in dropbox_content_hashes, cards))
