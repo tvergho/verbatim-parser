@@ -9,6 +9,7 @@ from local_parser import Parser
 from new_search import region, Search
 from memory_profiler import memory_usage, profile
 from worker import conn, q
+import logging
 
 api_url = "https://api.dropbox.com"
 s3_url = "https://logos-debate-2.s3.us-west-1.amazonaws.com"
@@ -17,6 +18,8 @@ bucket = "logos-debate-2"
 search = Search()
 s3 = boto3.client('s3', region_name=region, aws_access_key_id=os.environ['AWS_ACCESS_KEY_ID'], aws_secret_access_key=os.environ['AWS_SECRET_ACCESS_KEY'])
 db = boto3.client('dynamodb', region_name=region, aws_access_key_id=os.environ['AWS_ACCESS_KEY_ID'], aws_secret_access_key=os.environ['AWS_SECRET_ACCESS_KEY'])
+
+logger = logging.getLogger('waitress')
 
 class DropboxClient:
   def __init__(self, access_token):
@@ -115,6 +118,8 @@ class DropboxClient:
         job_id = f"{account_id}-{dropbox_file['content_hash']}"
         if not Job.exists(job_id, connection=conn):
           q.enqueue(self.process_file, dropbox_file, account_id, job_id=job_id)
+        else:
+          logger.info(f"Skipping {job_id} because it already exists in the queue")
     
     # Remove files that are no longer in dropbox
     print(f"Removing {len(files)} files that are no longer in dropbox")

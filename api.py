@@ -289,7 +289,7 @@ def cancel_user_jobs(account_id):
   user_jobs = [job for job in running_job_ids if job.startswith(account_id)]
   for job_id in user_jobs:
     job = Job.fetch(job_id, connection=conn)
-    job.cancel()
+    job.delete()
 
 def process_user(account_id):
   print(account_id)
