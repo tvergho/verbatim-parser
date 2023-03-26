@@ -3,6 +3,7 @@ import os
 import json
 import asyncio
 import boto3
+from rq.job import Job
 
 from local_parser import Parser
 from new_search import region, Search
@@ -111,7 +112,9 @@ class DropboxClient:
   def process_files(self, files, account_id):
     for dropbox_file in files:
       if dropbox_file['.tag'] == 'file':
-        q.enqueue(self.process_file, dropbox_file, account_id, job_id=f"{account_id}-{dropbox_file['content_hash']}")
+        job_id = f"{account_id}-{dropbox_file['content_hash']}"
+        if not Job.exists(job_id, connection=conn):
+          q.enqueue(self.process_file, dropbox_file, account_id, job_id=job_id)
     
     # Remove files that are no longer in dropbox
     print(f"Removing {len(files)} files that are no longer in dropbox")
