@@ -4,7 +4,9 @@ import redis
 import multiprocessing
 from rq import Worker, Queue, Connection
 from rq.registry import ScheduledJobRegistry
+from dotenv import load_dotenv
 
+load_dotenv()
 listen = ['high', 'default', 'low']
 
 redis_host = os.getenv('REDIS_HOST', 'redis')
