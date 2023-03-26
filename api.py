@@ -21,6 +21,7 @@ import threading
 
 import pinecone
 import cohere
+import logging
 
 load_dotenv()
 pinecone.init(api_key=os.environ['PINECONE_KEY'], environment="us-east-1-aws")
@@ -33,6 +34,8 @@ CORS(app)
 results_per_page = 50
 
 db = boto3.client('dynamodb', region_name=region, aws_access_key_id=os.environ['AWS_ACCESS_KEY_ID'], aws_secret_access_key=os.environ['AWS_SECRET_ACCESS_KEY'])
+logger = logging.getLogger('waitress')
+
 class Api:
   def __init__(self, name=None):
     self.name = name
@@ -314,6 +317,7 @@ def verify():
     if not hmac.compare_digest(signature, computed_signature):
       abort(403)
 
+    logger.info(f"Webhook received: {request.json}")
     if request.json.get('list_folder') == None or request.json['list_folder'].get('accounts') == None:
       return "empty accounts"
     
