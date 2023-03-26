@@ -67,7 +67,7 @@ class DropboxClient:
     if path_lower.split('.')[len(path_lower.split('.')) - 1] != 'docx':
       return
     
-    if search.check_content_hash_in_dynamo(content_hash, account_id):
+    if search.check_content_hash_in_dynamo(account_id, content_hash):
       print(f"Skipping {filename} because it already exists in search")
       return
 
