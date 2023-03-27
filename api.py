@@ -87,15 +87,22 @@ class Api:
           }
         })
 
-    filter_dict['$or'].extend([{
-      "division": {
-        "$eq": "ndtceda"
-      }
-    }, {
-      "division": {
-        "$eq": "hspolicy"
-      }
-    }])
+    if personal_only == 'true':
+      filter_dict['$and'].append({
+        "division": {
+          "$eq": "personal"
+        }
+      })
+    else:
+      filter_dict['$or'].extend([{
+        "division": {
+          "$eq": "ndtceda"
+        }
+      }, {
+        "division": {
+          "$eq": "hspolicy"
+        }
+      }])
 
     if account_id != None:
       filter_dict['$or'].append({

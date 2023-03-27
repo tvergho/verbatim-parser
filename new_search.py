@@ -31,6 +31,7 @@ class Search():
     )
     return 'matches' in response and len(response.matches) > 0
 
+  # This is not working for some reason
   def check_content_hash_in_dynamo(self, account_id, content_hash):
     response = self.db.query(
       TableName=table_name,
