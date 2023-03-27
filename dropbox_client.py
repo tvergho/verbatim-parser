@@ -67,7 +67,7 @@ class DropboxClient:
     if path_lower.split('.')[len(path_lower.split('.')) - 1] != 'docx':
       return
     
-    if search.check_content_hash_in_dynamo(account_id, content_hash):
+    if search.check_content_hash_in_dynamo(trunc_account_id, content_hash):
       print(f"Skipping {filename} because it already exists in search")
       return
 
@@ -113,15 +113,18 @@ class DropboxClient:
 
   # @profile
   def process_files(self, files, account_id):
+    trunc_account_id = account_id.split(':')[1]
     for dropbox_file in files:
       if dropbox_file['.tag'] == 'file':
         job_id = f"{account_id}-{dropbox_file['content_hash']}"
+        # if search.check_content_hash_in_dynamo(trunc_account_id, dropbox_file['content_hash']):
+        #   logger.info(f"Skipping {job_id} because it already exists in search")
+        #   continue
+
         if not Job.exists(job_id, connection=conn):
           q.enqueue(self.process_file, dropbox_file, account_id, job_id=job_id, failure_ttl=60)
         else:
           logger.info(f"Skipping {job_id} because it already exists in the queue")
     
     # Remove files that are no longer in dropbox
-    print(f"Removing {len(files)} files that are no longer in dropbox")
-    trunc_account_id = account_id.split(':')[1]
     search.remove_files(files, trunc_account_id)

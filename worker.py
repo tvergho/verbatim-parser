@@ -20,7 +20,7 @@ def start_worker():
 
 if __name__ == '__main__':
   processes = []
-  for i in range(4):
+  for i in range(8):
     p = multiprocessing.Process(target=start_worker)
     p.start()
   

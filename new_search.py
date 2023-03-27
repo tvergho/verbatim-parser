@@ -4,11 +4,13 @@ import boto3
 import json
 import pinecone
 import cohere
+import logging
 
 load_dotenv()
 pinecone.init(api_key=os.environ['PINECONE_KEY'], environment="us-east-1-aws")
 index = pinecone.Index("logos")
 co = cohere.Client(os.environ['COHERE_KEY'])
+logger = logging.getLogger('waitress')
 
 namespace = "cards"
 region = 'us-west-1'
@@ -40,9 +42,11 @@ class Search():
       ExpressionAttributeValues={
         ":team": {"S": account_id},
         ":content_hash": {"S": content_hash}
-      }
+      },
+      Select='COUNT'
     )
-    return 'Items' in response and len(response['Items']) > 0
+    item_count = response.get("Count", 0)
+    return item_count > 0
 
   def upload_cards(self, cards, ns=None):
     card_objects = list(map(lambda card: card.get_index(), cards))
@@ -135,7 +139,6 @@ class Search():
   def remove_files(self, dropbox_files, account_id):
     # Get all the cards from search that correspond to the account
     cards = self.get_cards_by_team(account_id)
-    num_cards = len(cards)
 
     # Get all the content_hash from dropbox_files
     dropbox_content_hashes = list(map(lambda file: file.get('content_hash', None), dropbox_files))
@@ -150,7 +153,8 @@ class Search():
     # Remove those cards from DynamoDB in batches of 25
     to_remove = list(map(lambda hit: {"DeleteRequest": {"Key": {"id": {"S": hit}}}}, ids))
 
-    print(f"Removing {num_cards} cards")
+    num_cards = len(to_remove)
+    logger.info(f"Removing {num_cards} cards")
 
     while len(to_remove) > 0:
       batch = to_remove[:25]
@@ -165,10 +169,10 @@ class Search():
       unprocessed = db_response.get("UnprocessedItems", {}).get(table_name, [])
       to_remove.extend(unprocessed)
     
-    print(f"Removed {num_cards} cards from DynamoDB")
+    logger.info(f"Removed {num_cards} cards from DynamoDB")
 
     # Remove from Pinecone
     if len(ids) > 0:
       index.delete(namespace=namespace, ids=ids)
 
-    print(f"Removed {num_cards} cards from Pinecone")
+    logger.info(f"Removed {num_cards} cards from Pinecone")
