@@ -142,6 +142,34 @@ class Api:
     'SouthernCalifornia', 'SouthernNazarene', 'SouthwesternCollege', 'Texas', 'TexasTech', 'Towson', 'Trinity', 'Tufts', 'TuftsUniversity', 'UMassAmherst', 'UNLV', 'UTD', 'UTSA', 'UTSanAntonio', 'WKU', 'WVU', 'WakeForest', 
     'WakeForestUniversity', 'Washington', 'WashingtonUniversity', 'WayneState', 'WeberState', 'WeberStateUniversity', 'WestGeorgia', 'WestVirginiaUniversity', 'WesternWashington', 'WesternWashingtonUniversity', 'WichitaState', 'Wyoming']
 
+  async def get_by_id(self, id, preview=True):
+    loop = asyncio.get_event_loop()
+
+    def get_item():
+      kwargs = {
+        'TableName': table_name,
+        'Key': {
+          'id': {
+            'S': id
+          }
+        },
+        'ReturnConsumedCapacity': 'NONE'
+      }
+      if preview == True:
+        kwargs['ProjectionExpression'] = "id,title,cite,tag,division,#y,s3_url,download_url,cite_emphasis"
+        kwargs['ExpressionAttributeNames'] = {
+          '#y': 'year'
+        }
+      return db.get_item(**kwargs)
+    
+    response = await loop.run_in_executor(None, get_item)
+    
+    if response.get('Item') == None:
+      return None
+
+    item = json.loads(response['Item'])
+    return item
+    
   async def get_by_ids(self, ids, preview=True):
     loop = asyncio.get_event_loop()
     deserializer = TypeDeserializer()
