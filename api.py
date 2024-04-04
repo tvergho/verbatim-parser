@@ -25,11 +25,13 @@ import logging
 import rq_dashboard
 import time
 from boto3.dynamodb.types import TypeDeserializer
+import voyageai
 
 load_dotenv()
 pinecone.init(api_key=os.environ['PINECONE_KEY'], environment="us-east-1-aws")
 index = pinecone.Index("logos")
 co = cohere.Client(os.environ['COHERE_KEY'])
+vo = voyageai.Client()
 
 app = Flask(__name__)
 app.config.from_object(rq_dashboard.default_settings)
@@ -47,8 +49,18 @@ class Api:
 
   async def query(self, q, from_value=0, start_date="", end_date="", exclude_sides="", exclude_division="", exclude_years="", exclude_schools="", sort_by="", cite_match="", account_id=None, personal_only=""):
     results = self.query_search(q, from_value, start_date, end_date, exclude_sides, exclude_division, exclude_years, exclude_schools, sort_by, cite_match, account_id, personal_only)
-    db_results = await self.get_by_ids(results[from_value:from_value+results_per_page], preview=True)
-    cursor = from_value + results_per_page
+    r_per_page = results_per_page if from_value > 0 else results_per_page * 2
+
+    db_results = await self.get_by_ids(results[from_value:from_value+r_per_page], preview=True)
+    cursor = from_value + r_per_page
+
+    if from_value == 0:
+      documents = [result['tag'] + ' ' + result['cite'] + ' ' + result['highlighted_text'] for result in db_results]
+      reranking = vo.rerank(q, documents, model="rerank-lite-1")
+      for r in reranking.results:
+        db_results[r.index]['score'] = r.relevance_score
+      db_results = sorted(db_results, key=lambda x: x['score'], reverse=True)
+
     return ([result for result in db_results if result != None], cursor)
 
   def query_search(self, q, from_value, start_date="", end_date="", exclude_sides="", exclude_division="", exclude_years="", exclude_schools="", sort_by="", cite_match="", account_id=None, personal_only=""):
@@ -142,34 +154,6 @@ class Api:
     'SouthernCalifornia', 'SouthernNazarene', 'SouthwesternCollege', 'Texas', 'TexasTech', 'Towson', 'Trinity', 'Tufts', 'TuftsUniversity', 'UMassAmherst', 'UNLV', 'UTD', 'UTSA', 'UTSanAntonio', 'WKU', 'WVU', 'WakeForest', 
     'WakeForestUniversity', 'Washington', 'WashingtonUniversity', 'WayneState', 'WeberState', 'WeberStateUniversity', 'WestGeorgia', 'WestVirginiaUniversity', 'WesternWashington', 'WesternWashingtonUniversity', 'WichitaState', 'Wyoming']
 
-  async def get_by_id(self, id, preview=True):
-    loop = asyncio.get_event_loop()
-
-    def get_item():
-      kwargs = {
-        'TableName': table_name,
-        'Key': {
-          'id': {
-            'S': id
-          }
-        },
-        'ReturnConsumedCapacity': 'NONE'
-      }
-      if preview == True:
-        kwargs['ProjectionExpression'] = "id,title,cite,tag,division,#y,s3_url,download_url,cite_emphasis"
-        kwargs['ExpressionAttributeNames'] = {
-          '#y': 'year'
-        }
-      return db.get_item(**kwargs)
-    
-    response = await loop.run_in_executor(None, get_item)
-    
-    if response.get('Item') == None:
-      return None
-
-    item = json.loads(response['Item'])
-    return item
-    
   async def get_by_ids(self, ids, preview=True):
     loop = asyncio.get_event_loop()
     deserializer = TypeDeserializer()
@@ -185,7 +169,7 @@ class Api:
             }
         }
         if preview:
-            request_items[table_name]['ProjectionExpression'] = "id,title,cite,tag,division,#y,s3_url,download_url,cite_emphasis"
+            request_items[table_name]['ProjectionExpression'] = "id,title,cite,tag,division,#y,s3_url,download_url,cite_emphasis,highlighted_text"
             request_items[table_name]['ExpressionAttributeNames'] = {'#y': 'year'}
         
         response = db.batch_get_item(RequestItems=request_items)
