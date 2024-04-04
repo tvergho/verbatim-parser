@@ -23,6 +23,8 @@ import pinecone
 import cohere
 import logging
 import rq_dashboard
+import time
+from boto3.dynamodb.types import TypeDeserializer
 
 load_dotenv()
 pinecone.init(api_key=os.environ['PINECONE_KEY'], environment="us-east-1-aws")
@@ -45,7 +47,7 @@ class Api:
 
   async def query(self, q, from_value=0, start_date="", end_date="", exclude_sides="", exclude_division="", exclude_years="", exclude_schools="", sort_by="", cite_match="", account_id=None, personal_only=""):
     results = self.query_search(q, from_value, start_date, end_date, exclude_sides, exclude_division, exclude_years, exclude_schools, sort_by, cite_match, account_id, personal_only)
-    db_results = await asyncio.gather(*[self.get_by_id(result) for result in results[from_value:from_value+results_per_page]])
+    db_results = await self.get_by_ids(results[from_value:from_value+results_per_page], preview=True)
     cursor = from_value + results_per_page
     return ([result for result in db_results if result != None], cursor)
 
@@ -140,33 +142,37 @@ class Api:
     'SouthernCalifornia', 'SouthernNazarene', 'SouthwesternCollege', 'Texas', 'TexasTech', 'Towson', 'Trinity', 'Tufts', 'TuftsUniversity', 'UMassAmherst', 'UNLV', 'UTD', 'UTSA', 'UTSanAntonio', 'WKU', 'WVU', 'WakeForest', 
     'WakeForestUniversity', 'Washington', 'WashingtonUniversity', 'WayneState', 'WeberState', 'WeberStateUniversity', 'WestGeorgia', 'WestVirginiaUniversity', 'WesternWashington', 'WesternWashingtonUniversity', 'WichitaState', 'Wyoming']
 
-  async def get_by_id(self, id, preview=True):
+  async def get_by_ids(self, ids, preview=True):
     loop = asyncio.get_event_loop()
+    deserializer = TypeDeserializer()
 
-    def get_item():
-      kwargs = {
-        'TableName': table_name,
-        'Key': {
-          'id': {
-            'S': id
-          }
-        },
-        'ReturnConsumedCapacity': 'NONE'
-      }
-      if preview == True:
-        kwargs['ProjectionExpression'] = "id,title,cite,tag,division,#y,s3_url,download_url,cite_emphasis"
-        kwargs['ExpressionAttributeNames'] = {
-          '#y': 'year'
+    def deserialize_item(item):
+        return {k: deserializer.deserialize(v) for k, v in item.items()}
+
+    def fetch_batch(batch_ids):
+        request_items = {
+            table_name: {
+                'Keys': [{'id': {'S': id}} for id in batch_ids],
+                'ConsistentRead': False
+            }
         }
-      return db.get_item(**kwargs)
-    
-    response = await loop.run_in_executor(None, get_item)
-    
-    if response.get('Item') == None:
-      return None
+        if preview:
+            request_items[table_name]['ProjectionExpression'] = "id,title,cite,tag,division,#y,s3_url,download_url,cite_emphasis"
+            request_items[table_name]['ExpressionAttributeNames'] = {'#y': 'year'}
+        
+        response = db.batch_get_item(RequestItems=request_items)
+        # Deserializing each item in the response
+        deserialized_items = [deserialize_item(item) for item in response['Responses'][table_name]]
+        return deserialized_items
 
-    item = json.loads(response['Item'])
-    return item
+    # Splitting ids into batches of 100
+    id_batches = [ids[i:i + 100] for i in range(0, len(ids), 100)]
+    responses = await asyncio.gather(*(loop.run_in_executor(None, fetch_batch, batch) for batch in id_batches))
+
+    # Combining all items from all batches
+    items = [item for batch in responses for item in batch]
+
+    return items
   
   def create_or_update_user(self, account_id, user, refresh_token):
     user = {
