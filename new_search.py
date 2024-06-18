@@ -8,7 +8,7 @@ import logging
 
 load_dotenv()
 pinecone.init(api_key=os.environ['PINECONE_KEY'], environment="us-east-1-aws")
-index = pinecone.Index("logos")
+index = pinecone.Index("logos-1718665984-index")
 co = cohere.Client(os.environ['COHERE_KEY'])
 logger = logging.getLogger('waitress')
 
