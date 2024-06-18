@@ -56,7 +56,7 @@ MarkupSafe==2.0.1
 memory-profiler==0.60.0
 multidict==5.2.0
 multiprocess==0.70.12.2
-numpy==2.0.0
+numpy==1.24
 opensearch-py==1.0.0
 outcome==1.2.0
 packaging==21.3
