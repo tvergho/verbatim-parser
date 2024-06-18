@@ -28,7 +28,7 @@ from boto3.dynamodb.types import TypeDeserializer
 import voyageai
 
 load_dotenv()
-pinecone.init(api_key=os.environ['PINECONE_KEY'], environment="us-east-1-aws")
+pinecone.init(api_key=os.environ['PINECONE_KEY'], environment="us-west-2-aws")
 index = pinecone.Index("logos-1718665984-index")
 co = cohere.Client(os.environ['COHERE_KEY'])
 vo = voyageai.Client()
