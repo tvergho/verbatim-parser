@@ -19,7 +19,7 @@ import asyncio
 import requests
 import threading
 
-import pinecone
+from pinecone.grpc import PineconeGRPC as Pinecone
 import cohere
 import logging
 import rq_dashboard
@@ -28,8 +28,10 @@ from boto3.dynamodb.types import TypeDeserializer
 import voyageai
 
 load_dotenv()
-pinecone.init(api_key=os.environ['PINECONE_KEY'], environment="us-west-2-aws")
-index = pinecone.Index("logos-1718665984-index")
+# pinecone.init(api_key=os.environ['PINECONE_KEY'], environment="us-west-2-aws")
+# index = pinecone.Index("logos-1718665984-index")
+pc = Pinecone(api_key=os.environ['PINECONE_KEY'])
+index = pc.Index("logos-1718665984-index")
 co = cohere.Client(os.environ['COHERE_KEY'])
 vo = voyageai.Client()
 
