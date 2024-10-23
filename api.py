@@ -58,7 +58,7 @@ class Api:
 
     if from_value == 0:
       documents = [result['tag'] + ' ' + result['cite'] + ' ' + result['highlighted_text'] for result in db_results]
-      reranking = vo.rerank(q, documents, model="rerank-lite-1")
+      reranking = vo.rerank(q, documents, model="rerank-2")
       for r in reranking.results:
         db_results[r.index]['score'] = r.relevance_score
       db_results = sorted(db_results, key=lambda x: x['score'], reverse=True)
