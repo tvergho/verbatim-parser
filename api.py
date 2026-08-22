@@ -233,5 +233,16 @@ def get_schools_list():
   schools = api.get_colleges()
   return {"colleges": schools}
 
+@app.route("/capabilities", methods=['GET'])
+def get_capabilities():
+  citation_date_version = int(os.environ.get('CITATION_DATE_CAPABILITY_VERSION', '1'))
+  return {
+    "citation_date": {
+      "version": citation_date_version,
+      "source": "f8-cite-span-with-conservative-fallback" if citation_date_version >= 2 else "legacy",
+      "max_year": __import__('datetime').date.today().year + 1,
+    }
+  }
+
 if __name__ == '__main__':
   app.run(port=os.environ['PORT'], host='0.0.0.0', debug=True)

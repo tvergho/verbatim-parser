@@ -1,60 +1,72 @@
-from dateutil import parser
-import itertools
-import re
 import datetime
+import re
 
-# Cliff Mass 19. American professor of Atmospheric Sciences at the University of Washington. His research focuses on numerical weather modeling and prediction, the role of topography in the evolution of weather systems, regional climate modeling, and the weather of the Pacific Northwest. 8-12-19. “Is Global Warming an Existential Threat? Probably Not, But Still a Serious Issue.” https://cliffmass.blogspot.com/2019/08/is-global-warming-existential-threat.html. DOA: 3-25-2020. kyujin. Edited for gendered language [denoted with brackets]
 
-def append_to_year_string(year):
-  try:
-    if int(year) <= 21:
-      return "20" + str(year).zfill(2)
-    else: return "19" + str(year)
-  except:
-    return year
+MIN_EVIDENCE_YEAR = 1900
+ACCESS_MARKER = re.compile(r"\b(?:accessed|retrieved|date\s+accessed|doa)\b", re.IGNORECASE)
 
-def generate_date_from_cite(date_str, verbose=False):
-  words = list(filter(lambda word : word.lower() != "and" and word.lower() != "or" and word.lower() != "of", map(lambda w : re.sub(r'[^a-zA-Z0-9/-]', '', w), date_str.split(" "))))
-  words = list(itertools.takewhile(lambda word : word.lower() != "accessed", words))
-  possibilities = []
-  successes = []
-  weights = []
-  combos = [list(filter(lambda w : len(w) > 0, words[i:j])) for i, j in itertools.combinations(range(len(words)+1), 2) if j - i < 5]
-  d_str = None
 
-  for combo in combos:
-    try:
-      weight = 0
-      
-      for i in range(len(combo)):
-        weight += len(combo[i])
-        if (len(combo[i]) == 2 or len(combo[i]) == 1) and combo[i].isdecimal() and len(combo) == 1:
-          weight -= len(combo[i])
-          combo[i] = append_to_year_string(combo[i])
-          if d_str is None:
-            d_str = combo[i]
-          weight += len(combo[i])
+def normalize_short_year(value, current_year):
+  """Map a one/two-digit cite year into the nearest non-future century."""
+  short = int(value)
+  candidate = (current_year // 100) * 100 + short
+  if candidate > current_year + 1:
+    candidate -= 100
+  return candidate
 
-      if all(map(lambda c : (not c.isdecimal()) or len(c) < 4, combo)) and d_str is not None:
-        combo.append(d_str)
-        weight += len(d_str)
 
-      possibilities.append(parser.parse(" ".join(combo), default=datetime.datetime(2000, 1, 1)))
+def extract_evidence_year(text, current_year):
+  for match in re.finditer(r"(?<!\d)(1\d{3}|20\d{2})(?!\d)", text):
+    year = int(match.group(1))
+    if MIN_EVIDENCE_YEAR <= year <= current_year + 1:
+      return year
 
-      successes.append(combo)
-      weights.append(weight)
-    except Exception as e:
-      pass
+  apostrophe = re.search(r"[\u2018\u2019'](\d{1,2})(?!\d)", text)
+  if apostrophe:
+    year = normalize_short_year(apostrophe.group(1), current_year)
+    if MIN_EVIDENCE_YEAR <= year <= current_year + 1:
+      return year
 
-  possibilities = [x for _, x in sorted(zip(weights, possibilities), reverse=True, key=lambda c : c[0])]
-  possibilities = list(filter(lambda x : x.year > 1900, possibilities))
+  # Bare two-digit years are common immediately after an author name. Limit
+  # this fallback to the beginning of the cite so page and volume numbers do
+  # not masquerade as dates.
+  bare = re.search(r"(?<!\d)(\d{2})(?!\d)", text[:100])
+  if bare:
+    year = normalize_short_year(bare.group(1), current_year)
+    if MIN_EVIDENCE_YEAR <= year <= current_year + 1:
+      return year
+  return None
 
-  if len(possibilities) == 0:
+
+def generate_date_from_cite(
+  date_str,
+  emphasized_ranges=None,
+  current_year=None,
+  verbose=False,
+):
+  """Return a conservative evidence date, never an access or caselist date.
+
+  Verbatim's F8/13pt-bold cite spans are authoritative when present. The
+  fallback searches only the pre-access citation text and intentionally
+  returns January 1 when only a year can be proven.
+  """
+  if not isinstance(date_str, str) or not date_str.strip():
+    return None
+  current_year = current_year or datetime.date.today().year
+
+  emphasized_text = " ".join(
+    date_str[start:end]
+    for start, end in emphasized_ranges or []
+    if isinstance(start, int) and isinstance(end, int) and 0 <= start < end <= len(date_str)
+  )
+  year = extract_evidence_year(emphasized_text, current_year) if emphasized_text else None
+  if year is None:
+    pre_access = ACCESS_MARKER.split(date_str, maxsplit=1)[0]
+    year = extract_evidence_year(pre_access, current_year)
+  if year is None:
     return None
 
-  date = possibilities[0]
+  result = datetime.date(year, 1, 1)
   if verbose:
-    print(successes)
-    print(date.strftime("%m/%d/%Y"))
-
-  return date.date() if date is not None else None
+    print(result.strftime("%m/%d/%Y"))
+  return result

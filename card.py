@@ -57,7 +57,7 @@ class Card():
 
     self.additional_info = additional_info
     self.object_id = hashlib.sha256(str(self).encode()).hexdigest()
-    self.cite_date = generate_date_from_cite(self.cite)
+    self.cite_date = generate_date_from_cite(self.cite, self.cite_emphasis)
 
   def parse_paragraphs(self):
     j = 0
